@@ -1,0 +1,61 @@
+{
+  "name": "@jimmyboh/playbook",
+  "version": "0.0.1",
+  "description": "A simple tool for running multiple projects at once.",
+  "main": "index.js",
+  "bin": {
+    "pb": "./dist/bin/pb.js",
+    "playbook": "./dist/bin/pb.js"
+  },
+  "scripts": {
+    "test": "gulp test",
+    "coverage": "nyc report --reporter=text-lcov | coveralls",
+    "postinstall": "typings install",
+    "preversion": "npm test",
+    "version": "git add -A",
+    "postversion": "git push && git push --tags && npm publish --access=public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JimmyBoh/playbook.git"
+  },
+  "author": "Jim Buck <jim@jimmyboh.com>",
+  "license": "GPL-3.0",
+  "bugs": {
+    "url": "https://github.com/JimmyBoh/playbook/issues"
+  },
+  "homepage": "https://github.com/JimmyBoh/playbook#readme",
+  "devDependencies": {
+    "ava": "^0.15.2",
+    "coveralls": "^2.11.9",
+    "del": "^2.2.0",
+    "gulp": "^3.9.1",
+    "gulp-shell": "^0.5.2",
+    "nyc": "^7.0.0",
+    "typescript": "^1.8.10",
+    "typings": "^1.0.4",
+    "yargs": "^4.7.1"
+  },
+  "dependencies": {
+    "conf": "^0.11.1",
+    "pify": "^2.3.0",
+    "vorpal": "^1.11.2"
+  },
+  "ava": {
+    "files": [
+      "./dist/**/*.spec.js"
+    ],
+    "source": [
+      "./dist/**/*.js"
+    ]
+  },
+  "nyc": {
+    "include": [
+      "dist/**/*.js"
+    ],
+    "exclude": [
+      "dist/**/*.spec.js",
+      "dist/**/*.d.ts"
+    ]
+  }
+}

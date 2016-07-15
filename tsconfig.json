@@ -1,0 +1,20 @@
+{
+  "compileOnSave": true,
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es2015",
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true,
+    "inlineSourceMap": false,
+    "removeComments": false,
+    "rootDir": "src",
+    "outDir": "dist",
+    "declaration": true,
+    "noImplicitAny": true
+  },
+  "exclude": [
+    "node_modules",
+    "typings",
+    "dist"
+  ]
+}
