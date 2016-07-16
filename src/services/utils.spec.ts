@@ -1,5 +1,6 @@
+import {join, resolve} from 'path';
 import {test} from 'ava';
-import {any} from './utils';
+import {any, FileSystemIterator} from './utils';
 
 test(`'any' returns false if no context is defined`, t => {
   let input: number[];
@@ -38,4 +39,34 @@ test(`'any' returns true if one item matches`, t => {
     return num % 2 === 1;
   });
   t.true(result);
+});
+
+const TEST_DIR = resolve(__dirname, '../../test');
+
+test(`FileSystemIterator - 'scan' returns target files`, t => {
+  let fsIterator = new FileSystemIterator(['package.json']);
+  const expectedPaths = [join(TEST_DIR, 'node-a', 'package.json'), join(TEST_DIR, 'node-b', 'package.json'), join(TEST_DIR, 'ignored-folder', 'package.json')];
+
+  return fsIterator
+    .scan(TEST_DIR)
+    .then((paths: string[]) => {
+      t.is(paths.length, expectedPaths.length);
+      paths.forEach(p => {
+        t.true(expectedPaths.indexOf(p) > -1);
+      });
+    });
+});
+
+test(`FileSystemIterator - 'ignoredFolders' skips specified folders`, t => {
+  let fsIterator = new FileSystemIterator(['package.json'], ['ignored-folder']);
+  const expectedPaths = [join(TEST_DIR, 'node-a', 'package.json'), join(TEST_DIR, 'node-b', 'package.json')];
+
+  return fsIterator
+    .scan(TEST_DIR)
+    .then((paths: string[]) => {
+      t.is(paths.length, expectedPaths.length);
+      paths.forEach(p => {
+        t.true(expectedPaths.indexOf(p) > -1);
+      });
+    });
 });

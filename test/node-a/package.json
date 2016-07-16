@@ -1,0 +1,11 @@
+{
+  "name": "node-a",
+  "version": "1.0.0",
+  "description": "Hello world application",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Jim Buck <jim@jimmyboh.com> (http://jimmyboh.com/)",
+  "license": "ISC"
+}
