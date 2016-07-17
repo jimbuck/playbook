@@ -81,7 +81,7 @@ export class FileSystemIterator
 
         let task = (result as Promise<T | T[]>).then(vals => {
           if (Array.isArray(vals)) {
-            results.push(...vals);
+            Array.prototype.push.apply(results, vals);
           } else if (typeof vals !== 'undefined') {
             results.push(vals);
           }
