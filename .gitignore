@@ -24,7 +24,6 @@ coverage
 build/Release
 
 # Project Specific
-.vscode
 node_modules
 typings
 .nyc_output
