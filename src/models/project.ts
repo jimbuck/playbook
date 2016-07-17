@@ -48,7 +48,7 @@ export class Project implements IProject
 
   args: string[];
 
-  constructor(opts: IProject = null) {
+  constructor(opts?: IProject) {
     this.name = opts && opts.name;
     this.path = opts && opts.path;
     this.command = opts && opts.command;
