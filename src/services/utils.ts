@@ -50,7 +50,7 @@ export function forp<TItem, TResult>(items: TItem[], handler: (item: TItem, inde
           continue;
         }
 
-        projects.push(...results[i]);
+        Array.prototype.push.apply(projects, results[i]);
       }
 
       return projects;
