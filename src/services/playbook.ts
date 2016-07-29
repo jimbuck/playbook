@@ -2,17 +2,19 @@ import * as fs from 'fs';
 import * as path from 'path';
 import {ChildProcess} from 'child_process';
 
+import * as pify from 'pify';
+const $fs = pify(fs);
+
 const Conf = require('conf');
 
+import {flatten} from './utils';
 import {Play} from '../models/play';
 import {ProjectHandler, Project} from '../models/project';
-import {dnxHandler} from '../handlers/dnx';
+
+import {nodeHandler} from '../handlers/node';
 import {dotnetHandler} from '../handlers/dotnet';
 
-const PROJECT_HANDLERS = {
-  [dnxHandler.name]: dnxHandler,
-  [dotnetHandler.name]: dotnetHandler
-};
+const PROJECT_HANDLERS = [nodeHandler, dotnetHandler];
 
 import {any, forp, FileSystemIterator} from './utils';
 
@@ -23,50 +25,53 @@ export class Playbook {
 
   constructor(opts?: {}) {
     this._storage = new Conf();
-    this._fsIterator = new FileSystemIterator(['package.json', 'project.json'], ['node_modules', 'bower_components', 'typings', 'artifacts', 'bin', 'packages']);
+    let acceptedFiles = [...new Set<string>(flatten<string>(PROJECT_HANDLERS.map(ph => ph.files)))];
+    this._fsIterator = new FileSystemIterator(acceptedFiles, ['node_modules', 'bower_components', 'typings', 'artifacts', 'bin', 'obj', 'packages']);
   }
 
   public getAll(): Promise<Play[]> {
-    let projectHash = this._storage.get('data.plays');
+    let projectHash = this._storage.get('data.plays') || {};
     return Promise.resolve(Object.keys(projectHash).map(projName => new Play(projectHash[projName])));
   }
 
-  public get(name: string): Promise<Play> {
-    return Promise.resolve(new Play(this._storage.get(`data.plays.${name}`)));
+  public get(playName: string): Promise<Play> {
+    return Promise.resolve(new Play(this._storage.get(`data.plays.${playName}`)));
   }
 
-  public create(name: string): Promise<Play> {
-    let play = new Play({ name });
-
-    return this
-      .save(play)
-      .then(() => play);
+  public create(playName: string): Promise<Play> {
+    let play = new Play({ name: playName });
+    
+    return this.save(play);
   }
 
-  public save(play: Play): Promise<this> {
+  public save(play: Play): Promise<Play> {
     this._storage.set(`data.plays.${play.name}`, play);
 
-    return Promise.resolve(this);
+    return Promise.resolve(play);
   }
 
-  public delete(play: Play): Promise<this> {
+  public delete(play: Play): Promise<Play> {
     this._storage.delete(`data.plays.${play.name}`);
 
-    return Promise.resolve(this);
+    return Promise.resolve(play);
   }
 
-  public run(name: string): Promise<ChildProcess[]> {
+  public run(playName: string): Promise<ChildProcess[]> {
     return this
-      .get(name)
+      .get(playName)
       .then((play) => play.run());
   }
 
   public findProjects(cwd: string): Promise<Project[]> {
     return this._fsIterator.map(cwd, (p: string) => {
-      
-      // TODO: Add check for which type of project it should be (probably from the ProjectHandlers).
-      
-      return new Project({ path: p });
+      return $fs.readFile(p, 'utf8').then((content: string) => {
+        return PROJECT_HANDLERS.map(projectHandler => {
+          if (projectHandler.files.some(file => p.endsWith(file))) {
+            return projectHandler.extract(p, content);
+          }
+          return [];
+        });
+      });
     });
   }
 }

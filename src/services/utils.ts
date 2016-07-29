@@ -4,7 +4,6 @@ import * as path from 'path';
 import * as pify from 'pify';
 const $fs = pify(fs);
 
-
 /**
  * Returns true if at least one element matches the provided expression. If no expression is provided, the element's existence is used instead.
  * 
@@ -26,8 +25,31 @@ export function any<T>(ctx: T[], expr?: (item: T) => boolean): boolean {
   return false;
 }
 
+
+/**
+ * Recursively flattens an array, ignoring any undefined elements.
+ * 
+ * @export
+ * @param {any[]} array
+ * @returns {any[]}
+ */
+export function flatten<T>(array: any[]): T[]
+{
+  let flattenedArray: any[] = [];
+
+  array.forEach(val => {
+    if (Array.isArray(val)) {
+      Array.prototype.push.apply(flattenedArray, flatten(val));
+    } else if(typeof val !== 'undefined') {
+      flattenedArray.push(val);
+    }
+  });
+
+  return flattenedArray;
+}
+
 export function forp<TItem, TResult>(items: TItem[], handler: (item: TItem, index: number) => TResult | TResult[] | Promise<TResult[]>): Promise<TResult[]> {
-  let tasks: (TResult[] | Promise<TResult[]>)[] = [];
+  let tasks: Array<TResult[] | Promise<TResult[]>> = [];
 
   for (let i = 0; i < items.length; i++) {
     let result = handler(items[i], i);
@@ -35,7 +57,9 @@ export function forp<TItem, TResult>(items: TItem[], handler: (item: TItem, inde
     if (Array.isArray(result)) {
       tasks.push(result);
     } else if (result instanceof Promise) {
-      tasks.push(result);
+      tasks.push(result.then(x => {
+        return Array.isArray(x) ? x : [x];
+      }));
     } else {
       tasks.push([result]);
     }
@@ -44,21 +68,11 @@ export function forp<TItem, TResult>(items: TItem[], handler: (item: TItem, inde
   return Promise
     .all<TResult[]>(tasks)
     .then((results) => {
-      let projects: TResult[] = [];
-      for (let i = 0; i < results.length; i++) {
-        if (!results[i] || results[i].length === 0) {
-          continue;
-        }
-
-        Array.prototype.push.apply(projects, results[i]);
-      }
-
-      return projects;
+      return flatten(results);
     });
 }
 
-export class FileSystemIterator
-{
+export class FileSystemIterator {
 
   constructor(public targetFiles: string[], public ignoreFolders?: string[]) {
     this.ignoreFolders = this.ignoreFolders || [];
@@ -68,67 +82,44 @@ export class FileSystemIterator
     return this.map(dir, p => p);
   }
 
-  map<T>(dir: string, mapFn: (path: string) => T | T[] | Promise<T> | Promise<T[]>): Promise<T[]> {
-    let tasks: Promise<void>[] = [];
-    let results: T[] = [];
+  iterate(dir: string, handler: (path: string) => void): Promise<void> {
     return this
-      .iterate(dir, p => {
-        let result = mapFn(p);
-        
-        if (!(result instanceof Promise)) {
-          result = Promise.resolve<T | T[]>(result);
-        }
-
-        let task = (result as Promise<T | T[]>).then(vals => {
-          if (Array.isArray(vals)) {
-            Array.prototype.push.apply(results, vals);
-          } else if (typeof vals !== 'undefined') {
-            results.push(vals);
-          }
-        });
-
-        tasks.push(task);
-      })
+      .map<void>(dir, handler)
       .then(() => {
-        return Promise.all(tasks);
-      })
-      .then(() => {
-        return results;
+        // Empty promise so we can force it to be void instead of void[].
       });
   }
 
-  iterate(dir: string, handler: (path: string) => void): Promise<void> {
+  map<T>(dir: string, handler: (path: string) => T | T[] | Promise<T | T[]>): Promise<T[]> {
     return $fs
       .readdir(dir)
       .then((paths: string[]) => {
-        let tasks: Promise<void>[] = [];
-        for (let i = 0; i < paths.length; i++) {
-          let filename = paths[i];
+
+        return forp(paths, (filename) => {
           let fullPath = path.join(dir, filename);
 
           if (any(this.ignoreFolders, (f: string) => filename === f)) {
             // It matches a folder/file in the ignore path, stop here...
-            continue;
+            return [];
           }
 
           if (any(this.targetFiles, (f: string) => filename === f)) {
             // It matches a target file! (handle it and stop here)...
-            handler(fullPath);
-            continue;
+            return handler(fullPath);
           }
 
-          tasks.push($fs
+          return $fs
             .lstat(fullPath)
             .then((stats: fs.Stats) => {
               if (stats.isDirectory()) {
-                return this.iterate(fullPath, handler);
+                return this.map(fullPath, handler);
               }
             }, (err: any) => {
               // Do nothing, we just can't access that file (no biggie).
-            }));
-        }
-
-        return Promise.all(tasks);
+            });
+        });
+      }).then((results: T[]) => {
+        return flatten(results).filter(r => !!r);
       });
   }
 }

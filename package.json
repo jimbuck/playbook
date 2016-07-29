@@ -31,7 +31,7 @@
     "del": "^2.2.0",
     "gulp": "^3.9.1",
     "gulp-shell": "^0.5.2",
-    "nyc": "^7.0.0",
+    "nyc": "^7.1.0",
     "typescript": "^1.8.10",
     "typings": "^1.0.4",
     "yargs": "^4.7.1"
@@ -55,7 +55,9 @@
     ],
     "exclude": [
       "dist/**/*.spec.js",
-      "dist/**/*.d.ts"
+      "dist/**/*.d.ts",
+      "coverage/**",
+      "node_modules/**"
     ]
   }
 }

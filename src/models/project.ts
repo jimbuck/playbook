@@ -9,29 +9,22 @@ export interface ProjectHandler
 
   desc: string;
 
-  command: string;
+  files: string[];
 
   /**
    * Checks whether a found project matches this handler.
    * 
    * @param {string} path
-   * @returns {(boolean | PromiseLike<boolean>)}
+   * @returns {(IProject | IProject[])}
    */
-  check(path: string): boolean | PromiseLike<boolean>; 
-  
-  /**
-   * Prompts the user for any additional arguments.
-   * 
-   * @returns {(string[] | Promise<string[]>)}
-   */
-  configure?(): string[] | Promise<string[]>;
+  extract(path: string, content: string): IProject | IProject[]; 
 }
 
 export interface IProject
 {
   name?: string
 
-  path?: string;
+  cwd?: string;
 
   command?: string;
 
@@ -42,7 +35,7 @@ export class Project implements IProject
 {
   public name: string
 
-  public path: string;
+  public cwd: string;
 
   public command: string
 
@@ -50,7 +43,7 @@ export class Project implements IProject
 
   constructor(opts?: IProject) {
     this.name = opts && opts.name;
-    this.path = opts && opts.path;
+    this.cwd = opts && opts.cwd;
     this.command = opts && opts.command;
     this.args = (opts && opts.args) || [];
   }
