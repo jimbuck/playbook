@@ -5,28 +5,6 @@ import * as pify from 'pify';
 const $fs = pify(fs);
 
 /**
- * Returns true if at least one element matches the provided expression. If no expression is provided, the element's existence is used instead.
- * 
- * @export
- * @template T
- * @param {T[]} ctx
- * @param {(item: T) => boolean} [expr]
- * @returns {boolean}
- */
-export function any<T>(ctx: T[], expr?: (item: T) => boolean): boolean {
-  if (!ctx) return false;
-
-  for (let i = 0; i < ctx.length; i++) {
-    if (!expr || expr(ctx[i])) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-
-/**
  * Recursively flattens an array, ignoring any undefined elements.
  * 
  * @export
@@ -98,12 +76,12 @@ export class FileSystemIterator {
         return forp(paths, (filename) => {
           let fullPath = path.join(dir, filename);
 
-          if (any(this.ignoreFolders, (f: string) => filename === f)) {
+          if (this.ignoreFolders.some((f: string) => filename === f)) {
             // It matches a folder/file in the ignore path, stop here...
             return [];
           }
 
-          if (any(this.targetFiles, (f: string) => filename === f)) {
+          if (this.targetFiles.some((f: string) => filename === f)) {
             // It matches a target file! (handle it and stop here)...
             return handler(fullPath);
           }

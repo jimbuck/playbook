@@ -3,14 +3,54 @@
 import {Question, Separator} from 'inquirer';
 import {ParsedArgs} from 'minimist';
 
+import {Playbook, Project, Play} from '../';
+
 interface Answers {
   [key: string]: any;
 }
 
-import {Playbook, Project, Play} from '../';
-
-const app = require('vorpal')();
 const pb = new Playbook();
+
+pb
+  .findProjects('C:\\Projects\\Personal\\playbook\\test')
+  .then(projects => {
+    console.log('startup', projects);
+
+    const Vorpal = require('vorpal'); // Toggle this line to change functionality.
+    
+    pb
+      .findProjects('C:\\Projects\\Personal\\playbook\\test')
+      .then(projects => {
+        console.log('later', projects);
+      });
+  });
+
+  /*
+
+var p1 = Promise.resolve([
+  Promise.resolve(new Date()),
+  new Promise((resolve, reject) => { 
+    setTimeout(resolve, 200, 'Jim');
+  })]);
+var p2 = 1223;
+var p3 = new Promise((resolve, reject) => {
+  setTimeout(resolve, 100, "foo");
+}); 
+
+Promise.all([p1, p2, p3]).then(values => { 
+  console.log(values); // [3, 1337, "foo"] 
+});
+
+/*
+
+app.command('test', 'Does stuff')
+  .action(function () {
+    return pb
+      .findProjects('C:\\Projects\\Personal\\playbook\\test')
+      .then(projects => {
+        console.log(projects);
+      });
+  });
 
 app
   .command('list', 'Shows available plays')
@@ -109,3 +149,6 @@ app
   .delimiter('playbook~$')
   .show()
   .parse(process.argv);
+
+
+// */

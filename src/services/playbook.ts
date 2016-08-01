@@ -1,5 +1,4 @@
 import * as fs from 'fs';
-import * as path from 'path';
 import {ChildProcess} from 'child_process';
 
 import * as pify from 'pify';
@@ -7,7 +6,7 @@ const $fs = pify(fs);
 
 const Conf = require('conf');
 
-import {flatten} from './utils';
+import {flatten, forp, FileSystemIterator} from './utils';
 import {Play} from '../models/play';
 import {ProjectHandler, Project} from '../models/project';
 
@@ -15,8 +14,6 @@ import {nodeHandler} from '../handlers/node';
 import {dotnetHandler} from '../handlers/dotnet';
 
 const PROJECT_HANDLERS = [nodeHandler, dotnetHandler];
-
-import {any, forp, FileSystemIterator} from './utils';
 
 export class Playbook {
 
@@ -63,11 +60,11 @@ export class Playbook {
   }
 
   public findProjects(cwd: string): Promise<Project[]> {
-    return this._fsIterator.map(cwd, (p: string) => {
-      return $fs.readFile(p, 'utf8').then((content: string) => {
+    return this._fsIterator.map(cwd, (path: string) => {
+      return $fs.readFile(path, 'utf8').then((content: string) => {
         return PROJECT_HANDLERS.map(projectHandler => {
-          if (projectHandler.files.some(file => p.endsWith(file))) {
-            return projectHandler.extract(p, content);
+          if (projectHandler.files.some(file => path.endsWith(file))) {
+            return projectHandler.extract(path, content);
           }
           return [];
         });
