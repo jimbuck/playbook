@@ -4,6 +4,11 @@ import * as path from 'path';
 import * as pify from 'pify';
 const $fs = pify(fs);
 
+const NO_OP = () => { };
+
+export type AsyncResult<T> = T | T[] | Promise<T | T[]>;
+
+
 /**
  * Recursively flattens an array, ignoring any undefined elements.
  * 
@@ -26,7 +31,7 @@ export function flatten<T>(array: any[]): T[]
   return flattenedArray;
 }
 
-export function forp<TItem, TResult>(items: TItem[], handler: (item: TItem, index: number) => TResult | TResult[] | Promise<TResult[]>): Promise<TResult[]> {
+export function forp<TItem, TResult>(items: TItem[], handler: (item: TItem, index: number) => AsyncResult<TResult>): Promise<TResult[]> {
   let tasks: Array<TResult[] | Promise<TResult[]>> = [];
 
   for (let i = 0; i < items.length; i++) {
@@ -45,9 +50,7 @@ export function forp<TItem, TResult>(items: TItem[], handler: (item: TItem, inde
 
   return Promise
     .all<TResult[]>(tasks)
-    .then((results) => {
-      return flatten(results);
-    });
+    .then(flatten);
 }
 
 export class FileSystemIterator {
@@ -63,12 +66,10 @@ export class FileSystemIterator {
   iterate(dir: string, handler: (path: string) => void): Promise<void> {
     return this
       .map<void>(dir, handler)
-      .then(() => {
-        // Empty promise so we can force it to be void instead of void[].
-      });
+      .then(NO_OP); // Empty promise so we can force it to be void instead of void[].
   }
 
-  map<T>(dir: string, handler: (path: string) => T | T[] | Promise<T | T[]>): Promise<T[]> {
+  map<T>(dir: string, handler: (path: string) => AsyncResult<T>): Promise<T[]> {
     return $fs
       .readdir(dir)
       .then((paths: string[]) => {
@@ -88,16 +89,16 @@ export class FileSystemIterator {
 
           return $fs
             .lstat(fullPath)
-            .then((stats: fs.Stats) => {
+            .then((stats: fs.Stats): AsyncResult<T> => {
               if (stats.isDirectory()) {
-                return this.map(fullPath, handler);
+                return this.map<T>(fullPath, handler);
+              } else {
+                return [];
               }
             }, (err: any) => {
               // Do nothing, we just can't access that file (no biggie).
             });
         });
-      }).then((results: T[]) => {
-        return flatten(results).filter(r => !!r);
-      });
+      }).then(flatten);
   }
 }
