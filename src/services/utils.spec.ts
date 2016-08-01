@@ -32,7 +32,10 @@ test(`'forp' accepts a list of items and returns a promise`, t => {
     return num;
   });
 
+  console.log(JSON.stringify(result, null, 2));
+
   t.true(result instanceof Promise);
+
   
   return result.then(NO_OP);
 });
