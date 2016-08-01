@@ -2,6 +2,7 @@ import {join, resolve} from 'path';
 import {test} from 'ava';
 import {flatten, forp, FileSystemIterator} from './utils';
 
+const NO_OP = () => { };
 const TEST_DIR = resolve(__dirname, '../../test');
 
 console.log(`The TEST_DIR is "${TEST_DIR}"."`);
@@ -30,10 +31,10 @@ test(`'forp' accepts a list of items and returns a promise`, t => {
   let result = forp([1], (num, index) => {
     return num;
   });
+
+  t.true(result instanceof Promise);
   
-  return result.then(() => {
-    t.true(result instanceof Promise);
-  });
+  return result.then(NO_OP);
 });
 
 test(`'forp' handles syncronous handlers`, t => {
