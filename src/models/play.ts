@@ -1,17 +1,20 @@
 
-import {ChildProcess} from 'child_process';
+import {ChildProcess, exec} from 'child_process';
 
 import {IProject, Project} from './project';
 
 export interface IPlay
 {
   name: string;
+  cwd: string;
   projects?: Project[];
 }
 
 export class Play implements IPlay
 {
   public name: string;
+
+  public cwd: string;
 
   public projects: Project[];
 
@@ -21,12 +24,21 @@ export class Play implements IPlay
     }
 
     this.name = data.name;
+    this.cwd = data.cwd;
     this.projects = (data.projects || []).map(proj => new Project(proj));
   }
 
-  public run(): ChildProcess[]{
+  public run(): Lookup<ChildProcess>
+  {
+    let childProcesses: Lookup<ChildProcess> = {};
 
-    return [];
+    this.projects.forEach(proj => {
+      const command = `${proj.command} ${proj.args.join(' ')}`;
+
+      childProcesses[proj.name] = exec(command, { cwd: proj.cwd });;
+    });
+
+    return childProcesses;
   }
 
   public toString(): string {

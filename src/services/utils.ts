@@ -6,8 +6,27 @@ const $fs = pify(fs);
 
 const NO_OP = () => { };
 
-export type AsyncResult<T> = T | T[] | Promise<T | T[]>;
+export type AsyncResult<T> = T | T[] | PromiseLike<T | T[]>;
 
+
+/**
+ * Returns the first item of the array matching the specified predicate.
+ * 
+ * @export
+ * @template T
+ * @param {T[]} array
+ * @param {(item: T, index: number) => boolean} predicate
+ * @returns {T}
+ */
+export function first<T>(array: T[], predicate: (item: T, index: number) => boolean): T {
+  for (let i = 0; i < array.length; i++){
+    if (predicate(array[i], i)) {
+      return array[i];
+    }
+  }
+
+  return null;
+}
 
 /**
  * Recursively flattens an array, ignoring any undefined elements.
@@ -32,24 +51,16 @@ export function flatten<T>(array: any[]): T[]
 }
 
 export function forp<TItem, TResult>(items: TItem[], handler: (item: TItem, index: number) => AsyncResult<TResult>): Promise<TResult[]> {
-  let tasks: Array<TResult[] | Promise<TResult[]>> = [];
+  let tasks: Array<AsyncResult<TResult>> = [];
 
   for (let i = 0; i < items.length; i++) {
     let result = handler(items[i], i);
 
-    if (Array.isArray(result)) {
-      tasks.push(result);
-    } else if (result instanceof Promise) {
-      tasks.push(result.then(x => {
-        return Array.isArray(x) ? x : [x];
-      }));
-    } else {
-      tasks.push([result]);
-    }
+    tasks.push(result);
   }
 
   return Promise
-    .all<TResult[]>(tasks)
+    .all(tasks)
     .then(flatten);
 }
 

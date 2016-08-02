@@ -7,4 +7,11 @@ declare class Conf
   public set(key: string, val: any): void;
 
   public delete(key: string): void;
+
+  public has(key: string): boolean;
+}
+
+declare interface Lookup<T>
+{
+  [key: string]: T;
 }

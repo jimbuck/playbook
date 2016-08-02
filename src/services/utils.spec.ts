@@ -65,13 +65,12 @@ test(`'forp' handles single return promise `, t => {
   let input = [1, 2, 3, 4];
   let expectedItems = ['#1', '#2', '#3', '#4'];
   return forp<number, string>(input, (num, index) => {
-    return new Promise((resolve, reject) => {
+    return new Promise<string>((resolve, reject) => {
       setTimeout(() => {
         resolve('#' + num);
       }, 100);
     });
   }).then((actualItems) => {
-    console.log(JSON.stringify(actualItems, null, 2));
     actualItems.forEach((str, index) => {
       t.is(str, expectedItems[index]);
     });

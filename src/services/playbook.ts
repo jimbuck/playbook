@@ -32,31 +32,37 @@ export class Playbook {
   }
 
   public get(playName: string): Promise<Play> {
-    return Promise.resolve(new Play(this._storage.get(`data.plays.${playName}`)));
+    if (!this._storage.has(playPath(playName))) {
+      return Promise.reject<Play>(new Error(`Play "${playName}" was not found!`));
+    }
+
+    return Promise.resolve(new Play(this._storage.get(playPath(playName))));
   }
 
-  public create(playName: string): Promise<Play> {
-    let play = new Play({ name: playName });
+  public create(playName: string, cwd: string): Promise<Play> {
+
+    return this.exists(playName)
+      .then((exists) => {
+        if (exists) {
+          return Promise.reject<Play>(new Error(`Play "${playName}" already exists!`));
+        } else {
+          let play = new Play({ name: playName, cwd });
     
-    return this.save(play);
+          return this.save(play);
+        }
+      });
   }
 
   public save(play: Play): Promise<Play> {
-    this._storage.set(`data.plays.${play.name}`, play);
+    this._storage.set(playPath(play.name), play);
 
     return Promise.resolve(play);
   }
 
-  public delete(play: Play): Promise<Play> {
-    this._storage.delete(`data.plays.${play.name}`);
+  public delete(play: Play): Promise<void> {
+    this._storage.delete(playPath(play.name));
 
-    return Promise.resolve(play);
-  }
-
-  public run(playName: string): Promise<ChildProcess[]> {
-    return this
-      .get(playName)
-      .then((play) => play.run());
+    return Promise.resolve();
   }
 
   public findProjects(cwd: string): Promise<Project[]> {
@@ -71,4 +77,12 @@ export class Playbook {
       });
     });
   }
+
+  private exists(playName: string): Promise<boolean> {
+    return Promise.resolve(this._storage.has(playPath(playName)));
+  }
+}
+
+function playPath(playName: string): string {
+  return `data.plays.${playName}`;
 }

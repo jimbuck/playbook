@@ -33,13 +33,13 @@ export interface IProject
 
 export class Project implements IProject
 {
-  public name: string
+  public name: string;
 
   public cwd: string;
 
-  public command: string
+  public command: string;
 
-  args: string[];
+  public args: string[];
 
   constructor(opts?: IProject) {
     this.name = opts && opts.name;
