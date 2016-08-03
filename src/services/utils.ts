@@ -113,3 +113,41 @@ export class FileSystemIterator {
       }).then(flatten);
   }
 }
+
+
+/**
+ * A simple queue with optional size limitation.
+ * 
+ * @export
+ * @class Queue
+ * @extends {Array<T>}
+ * @template T
+ */
+export class Queue<T> extends Array<T>
+{
+  constructor(private _limit: number = 0) {
+    super();
+  }
+
+  /**
+   * Adds a new item to the queue.
+   * 
+   * @param {T} item
+   */  
+  public enqueue(item: T) {
+    this.unshift(item);
+
+    if (this._limit > 0 && this.length > this._limit) {
+      this.dequeue();
+    }
+  }
+
+  /**
+   * Removes an item from the queue.
+   * 
+   * @returns {T}
+   */  
+  public dequeue(): T {
+    return this.pop();
+  }
+}

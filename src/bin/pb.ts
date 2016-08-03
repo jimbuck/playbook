@@ -1,26 +1,17 @@
-#!/usr/bin / env node
+#!/usr/bin/env node
 
 import {Question, Separator} from 'inquirer';
 import {ParsedArgs} from 'minimist';
-import * as chalk from 'chalk';
+const chalk = require('chalk');
 const ansiEscapes = require('ansi-escapes');
 
 import {Playbook, Project, Play} from '../';
 import {first} from '../services/utils';
+import {ProcessDisplay} from '../services/process-display';
 
 interface Answers {
   [key: string]: any;
 }
-declare namespace NodeJS
-{
-  interface ReadableStream {
-    setRawMode(mode: boolean): void;
-  }
-}
-
-const GRAY_BLOCK = chalk.gray('█');
-const GREEN_BLOCK = chalk.green('█');
-const RED_BLOCK = chalk.red('█');
 
 const app = require('vorpal')();
 
@@ -90,6 +81,8 @@ app
       });
   });
 
+
+let procDisplay: ProcessDisplay;
 app
   .command('run [playName]', 'Executes a play.')
   .alias('exec').alias('start')
@@ -101,6 +94,10 @@ app
       .catch((err: Error) => {
         this.log('An error occured while running...');
       });
+  })
+  .cancel(function () {
+
+    procDisplay.cancel();
   });
 
 app
@@ -242,32 +239,13 @@ function deletePlay(play: Play): Promise<void>{
 }
 
 function runPlay(play: Play): Promise<void>{
-  
   return new Promise<void>((resolve, reject) => {
     let processes = play.run();
+    procDisplay = new ProcessDisplay(processes);
 
-    let projectNames = Object.keys(processes);
-
-    projectNames.forEach(proj => {
-      this.log(` ${proj} ${(new Array(10)).join(GREEN_BLOCK)}`);
-    });
-
-    // TODO: Create process display
-    // - Shows each project
-    // - Displays bar representing writes to stdout/stderr.
-    // - 
-
-    // process.stdin.on('keypress', (ch: any, key: any) => {
-    //   app.ui.redraw(key.name);
-    //   if (key && key.ctrl && key.name === 'c') {
-    //     app.ui.redraw('Tried to cancel!');
-    //     resolve();
-    //   }
-    // });
-
-    setTimeout(() => {
-      resolve();
-    }, 1000 * 5);
+    return procDisplay.render((text) => {
+      app.ui.redraw(text);
+    }, 200);
   });
 }
 

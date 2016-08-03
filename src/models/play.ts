@@ -30,15 +30,12 @@ export class Play implements IPlay
 
   public run(): Lookup<ChildProcess>
   {
-    let childProcesses: Lookup<ChildProcess> = {};
-
+    let procs: Lookup<ChildProcess> = {};
     this.projects.forEach(proj => {
-      const command = `${proj.command} ${proj.args.join(' ')}`;
-
-      childProcesses[proj.name] = exec(command, { cwd: proj.cwd });;
+      procs[proj.name] = exec(`${proj.command} ${proj.args.join(' ')}`, { cwd: proj.cwd });
     });
 
-    return childProcesses;
+    return procs;
   }
 
   public toString(): string {
