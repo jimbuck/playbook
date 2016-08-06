@@ -2,11 +2,3 @@ language: node_js
 node_js:
 - stable
 after_success: npm run coverage
-deploy:
-  provider: npm
-  email: jim@jimmyboh.com
-  api_key:
-    secure: nD7HwDfFh7tobIdCjzfl90U++QqTGvi30L5N5J8GFeDXlEe2GHuZ3HLN6cr/GeGrgb4hW6UXD3kQ2GqykM9HYsiGLu2eEW4aNqoQI5+0dIzZ9/jU4/gagyEmAsQob9eh/FirHNPdmUwFTIk8AAB+qK6xqYGungLJ28tQs8+zSl31S/VLXVjVnTOfw1mI2c4/dExZ+H+KCJzfKUMqPS4gc6Rqg3l00RY/Z46NjoQeY+c9DzfmagUUR3nuDww8b1aVYUxDnvsvozLyaWX+XphrlCWDHBwsUK+4D9OqnK7YllT+1yS9CSULHPtl/IgA1YTgaHNtmUnFqUmIHz1Sk7tmXbLLj/5Z6OQn57qPimoQ27iDEPaONNTjDZerq5tszzrp4VCsQiQ1Eit17w6zG1wyZUisAC9H5GoM7cndAmMuaBSh5qmaMLjlKPv+swzpMue0eMPao5Ix3bhPeDo8ZP0N3I4+XWQwLcOv1UpwFGbszLy+HzkRRt50WyMQ85D05XRbBxLNxMomlm08jSfBNHCHnoHKuI/0PL8LS8bnmj78qoFOSD1IRZSnSfwP/FHw3EJp1j1aaqUzcAQCsl1XM4h8Gey7gz3/Dqc6SoziM6FYcwsW6x3qIwxHfoXpor05modsur0PBPq96fwc4aO04v7a43RXrE2958tyKceXiBh2UpA=
-  on:
-    tags: true
-    repo: JimmyBoh/playbook
