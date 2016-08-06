@@ -6,7 +6,7 @@
     "pretest": "echo We're about to test...",
     "test": "echo ...the tests look good...",
     "posttest": "echo ...so we're all done here!"
-  }
+  },
   "devDependencies": {
     "gulp": "3.9.1",
     "gulp-concat": "2.6.0",

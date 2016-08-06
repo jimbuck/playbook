@@ -16,6 +16,7 @@ namespace WebApplication
                 .UseContentRoot(Directory.GetCurrentDirectory())
                 .UseIISIntegration()
                 .UseStartup<Startup>()
+                .UseUrls("http://localhost:6016")
                 .Build();
 
             host.Run();

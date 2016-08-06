@@ -1,11 +1,10 @@
 
-let http = require('http');
-const PORT = 6014;
 
-let server = http.createServer((request, response) => {
-  response.end('Request Path: ' + request.url);
-});
-
-server.listen(PORT, () => {
-  console.log(`node-b server listening on: http://localhost:${PORT}`);
-});
+setInterval(() => {
+  let randomNum = Math.random();
+  if(randomNum < 0.9){
+    process.stdout.write(`It was a great draw! ${randomNum}`);
+  } else {
+    process.stderr.write(`It was a bad draw! ${randomNum}`);
+  }
+}, 100);
