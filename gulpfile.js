@@ -31,8 +31,8 @@ class Tasks {
     return shell.task(`nyc report --reporter=lcov ava -v & start coverage/lcov-report/index.html`);
   }
 
-  static watch() {
-    return gulp.watch([paths.src + '**/*'], ['test']);
+  static watch(task) {
+    return () => gulp.watch([paths.src + '**/*'], [task]);
   }
 
   static bump(step) {
@@ -68,7 +68,9 @@ gulp.task('test', ['build'], Tasks.test);
 gulp.task('coverage', ['build'], Tasks.coverage);
 
 // Used for better development (watch with TAP output) (but also because we now are moving more files around)
-gulp.task('watch', ['test'], Tasks.watch);
+gulp.task('watch', ['build'], Tasks.watch('build'));
+
+gulp.task('watch-test', ['test'], Tasks.watch('test'));
 
 // Set up the git version helpers...
 ['patch', 'minor', 'major'].forEach(step => {
