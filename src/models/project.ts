@@ -29,6 +29,8 @@ export interface IProject
   command?: string;
 
   args?: string[];
+
+  currentProcess?: ChildProcess;
 }
 
 export class Project implements IProject
@@ -41,10 +43,13 @@ export class Project implements IProject
 
   public args: string[];
 
+  public currentProcess: ChildProcess;
+
   constructor(opts?: IProject) {
     this.name = opts && opts.name;
     this.cwd = opts && opts.cwd;
     this.command = opts && opts.command;
     this.args = (opts && opts.args) || [];
+    this.currentProcess = opts && opts.currentProcess;
   }
 }

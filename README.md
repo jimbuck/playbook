@@ -8,31 +8,20 @@ A simple tool for running multiple projects at once.
 
 This module will recursively scan the current directory, looking for supported project types. After selecting which projects you'd like to run, it will execute them all simultaneously, perfect for those multi-tiered projects!
 
-## Example:
+## Installation:
 
 ```sh
-# Run select .NET Core 1.0 projects...
-pb
-
-# Run select node projects...
-md node
-
-# Run any selection of any projects...
-md        
+npm i -g @jimmyboh/playbook
 ```
 
-```ts
-import * as fs from 'fs';
-import {Playbook} from '@jimmyboh/playbook';
+## Usage:
 
-// tbd...
-let pb = new Playbook();
-```
+_Coming Soon!_
 
 ## Features:
- - Auto-scan for projects.
- - Intelligently runs each project type.
- - Remembers runtime configurations for rapid usage.
+ - Auto-scans filesystem for projects.
+ - Supports multiple project types (`dotnet`, `node`, `npm` tasks, and growing).
+ - Interactive REPL for advanced editing, or direct commands for quick access.
  
 ## Contribute
  

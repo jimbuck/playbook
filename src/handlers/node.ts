@@ -1,5 +1,5 @@
 import * as fs from 'fs';
-import {basename, dirname} from 'path';
+import {basename, dirname, join} from 'path';
 import * as pify from 'pify';
 const $fs = pify(fs);
 
@@ -31,7 +31,12 @@ export const nodeHandler: ProjectHandler = {
       packageJson.title = packageJson.title || basename(cwd);
       packageJson.main = packageJson.main || 'index.js';
 
-      let projects: Project[] = [new NodeProject(cwd, packageJson)];
+      let projects: Project[] = [];
+
+      if(fs.existsSync(join(cwd, packageJson.main)))
+      {
+        projects.push(new NodeProject(cwd, packageJson));
+      }
 
       if (packageJson.scripts) {
         Object.keys(packageJson.scripts)

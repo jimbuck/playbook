@@ -135,7 +135,7 @@ export class Queue<T> extends Array<T>
    * @param {T} item
    */  
   public enqueue(item: T) {
-    this.unshift(item);
+    this.push(item);
 
     if (this._limit > 0 && this.length > this._limit) {
       this.dequeue();
@@ -148,6 +148,6 @@ export class Queue<T> extends Array<T>
    * @returns {T}
    */  
   public dequeue(): T {
-    return this.pop();
+    return this.shift();
   }
 }
