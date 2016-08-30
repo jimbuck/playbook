@@ -8,26 +8,6 @@ const NO_OP = () => { };
 
 export type AsyncResult<T> = T | T[] | PromiseLike<T | T[]>;
 
-
-/**
- * Returns the first item of the array matching the specified predicate.
- * 
- * @export
- * @template T
- * @param {T[]} array
- * @param {(item: T, index: number) => boolean} predicate
- * @returns {T}
- */
-export function first<T>(array: T[], predicate: (item: T, index: number) => boolean): T {
-  for (let i = 0; i < array.length; i++){
-    if (predicate(array[i], i)) {
-      return array[i];
-    }
-  }
-
-  return null;
-}
-
 /**
  * Recursively flattens an array, ignoring any undefined elements.
  * 
@@ -35,8 +15,7 @@ export function first<T>(array: T[], predicate: (item: T, index: number) => bool
  * @param {any[]} array
  * @returns {any[]}
  */
-export function flatten<T>(array: any[]): T[]
-{
+export function flatten<T>(array: any[]): T[] {
   let flattenedArray: any[] = [];
 
   array.forEach(val => {
@@ -123,10 +102,35 @@ export class FileSystemIterator {
  * @extends {Array<T>}
  * @template T
  */
-export class Queue<T> extends Array<T>
+export class Queue<T>
 {
-  constructor(private _limit: number = 0) {
-    super();
+  private _array: Array<T>;  
+  private _limit: number;
+
+  constructor(limit: number = 0) {
+    this._array = [];
+    this.limit = limit;
+  }
+
+  public get count(): number {
+    return this._array.length;
+  }
+
+  public get limit(): number {
+    return this._limit;
+  }
+
+  public set limit(value: number) {
+    if (value <= 0) {
+      value = null;
+    }
+    this._limit = value;
+
+    if (typeof this._limit === 'number') {
+      while (this._array.length > this._limit) {
+        this.dequeue();
+      }
+    }    
   }
 
   /**
@@ -135,9 +139,9 @@ export class Queue<T> extends Array<T>
    * @param {T} item
    */  
   public enqueue(item: T) {
-    this.push(item);
+    this._array.push(item);
 
-    if (this._limit > 0 && this.length > this._limit) {
+    if (this.limit > 0 && this._array.length > this.limit) {
       this.dequeue();
     }
   }
@@ -148,6 +152,14 @@ export class Queue<T> extends Array<T>
    * @returns {T}
    */  
   public dequeue(): T {
-    return this.shift();
+    return this._array.shift();
+  }
+
+  public toArray(): Array<T> {
+    return this._array.slice();
+  }
+
+  public toString(): string {
+    return this._array.toString();
   }
 }

@@ -58,6 +58,7 @@
     "exclude": [
       "dist/**/*.spec.js",
       "dist/**/*.d.ts",
+      "dist/*.js",
       "coverage/**",
       "node_modules/**"
     ]

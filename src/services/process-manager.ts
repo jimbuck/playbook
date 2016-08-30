@@ -69,13 +69,14 @@ class StatusQueue extends Queue<string>
   constructor() {
     super(STATUS_BAR_WIDTH);
 
-    this.length = STATUS_BAR_WIDTH;
-    this.fill(GRAY_LINE);
+    for (let i = 0; i < STATUS_BAR_WIDTH; i++){
+      this.enqueue(GRAY_LINE);
+    }
   }
 
   public toString()
   {
-    return this.join('');
+    return this.toArray().join('');
   }
 }
 

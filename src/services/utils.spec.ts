@@ -1,11 +1,11 @@
 import {join, resolve} from 'path';
 import {test} from 'ava';
-import {flatten, forp, FileSystemIterator} from './utils';
+import {flatten, forp, FileSystemIterator, Queue} from './utils';
 
 const NO_OP = () => { };
 const TEST_DIR = resolve(__dirname, '../../test');
 
-console.log(`The TEST_DIR is "${TEST_DIR}"."`);
+console.log(`The TEST_DIR is "${TEST_DIR}".`);
 
 test(`'flatten' returns the same array if already flattened`, t => {
   let input = [2, 4, 6, 8];
@@ -143,3 +143,80 @@ test(`'FileSystemIterator.map' converts provided paths`, t => {
       });
     });
 });
+
+test(`'Queue' is a class`, t => {
+  t.is(typeof Queue, 'function');
+});
+
+test(`'Queue' requires no options`, t => {
+  t.notThrows(() => new Queue<Date>());
+});
+
+test(`'Queue' accepts an optional limit`, t => {
+  let q = new Queue<Date>(3);
+  t.is(q.limit, 3);
+});
+
+test(`'Queue' limit is enforced during enqueue.`, t => {
+  let q = new Queue<Date>(3);
+  q.enqueue(new Date());
+  t.is(q.count, 1);
+  q.enqueue(new Date());
+  t.is(q.count, 2);
+  q.enqueue(new Date());
+  t.is(q.count, 3);
+  q.enqueue(new Date());
+  t.is(q.count, 3);
+});
+
+test(`'Queue' limit is enforced after limit changed.`, t => {
+  let q = new Queue<Date>(5);
+  q.enqueue(new Date());
+  t.is(q.count, 1);
+  q.enqueue(new Date());
+  t.is(q.count, 2);
+  q.enqueue(new Date());
+  t.is(q.count, 3);
+  q.enqueue(new Date());
+  t.is(q.count, 4);
+  q.limit = 3;
+  t.is(q.count, 3);
+});
+
+test(`'Queue' is FIFO`, async (t) => {
+  let d1 = new Date();
+  await delay(100);
+  let d2 = new Date();
+  await delay(100);
+  let d3 = new Date();
+  await delay(100);
+  let d4 = new Date();
+  
+  let q = new Queue<Date>(3);
+  t.is(q.count, 0);
+  q.enqueue(d1);
+  t.is(q.count, 1);
+  q.enqueue(d2);
+  t.is(q.count, 2);
+  q.enqueue(d3);
+  t.is(q.count, 3);
+  q.enqueue(d4);
+  t.is(q.count, 3);
+  t.deepEqual(q.toArray(), [d2, d3, d4]);
+});
+
+test(`'Queue.toString' is the same as Array.toString`, t => {
+  let q = new Queue<Date>();
+  q.enqueue(new Date());
+  q.enqueue(new Date());
+  q.enqueue(new Date());
+  t.is(q.toString(), q.toArray().toString());
+});
+
+function delay(duration: number): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    setTimeout(() => {
+      resolve();
+    }, duration);
+  });
+}

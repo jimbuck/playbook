@@ -6,7 +6,6 @@ const chalk = require('chalk');
 const ansiEscapes = require('ansi-escapes');
 
 import {Playbook, Project, Play} from '../';
-import {first} from '../services/utils';
 import {ProcessManager} from '../services/process-manager';
 
 interface Answers {
@@ -196,7 +195,7 @@ function selectPlay(args: ParsedArgs): Promise<Play> {
         }
       ]).then((answers: Answers): Promise<Play> => {
         playName = <string>answers[answerName];
-        let play = first(plays, p => p.name === playName);
+        let play = plays.find(p => p.name === playName);
         if (play) {
           return Promise.resolve(play);
         } else {
@@ -257,7 +256,7 @@ function deletePlay(play: Play): Promise<void>{
 }
 
 function runPlay(play: Play): Promise<void> {
-  procManager = play.run();
+  procManager = new ProcessManager(play.run());
 
   return procManager.render((text) => {
     app.ui.redraw(text);
