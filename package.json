@@ -26,15 +26,15 @@
   },
   "homepage": "https://github.com/JimmyBoh/playbook#readme",
   "devDependencies": {
-    "ava": "^0.15.2",
+    "ava": "^0.16.0",
     "coveralls": "^2.11.9",
     "del": "^2.2.0",
     "gulp": "^3.9.1",
     "gulp-shell": "^0.5.2",
-    "nyc": "^7.1.0",
+    "nyc": "^8.1.0",
     "typescript": "^1.8.10",
     "typings": "^1.0.4",
-    "yargs": "^4.7.1"
+    "yargs": "^4.8.1"
   },
   "dependencies": {
     "ansi-escapes": "^1.4.0",
