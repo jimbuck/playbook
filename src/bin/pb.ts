@@ -99,19 +99,19 @@ app
     return selectPlay.call(this, args)
       .then(runPlay.bind(this))
       .catch((err: Error) => {
-        this.log(chalk.bgRed.white('An error occured while running... %o', err));
+        this.log(chalk.bgRed.white(err.message));
       });
   })
   .cancel(function () {
     procManager.cancel();
   });
 
-// app
-//   .command('clear', 'Resets the console to a blank slate.')
-//   .alias('cls')
-//   .action(function(args: ParsedArgs){
-//     this.log('\x1B[2J\x1B[0f');
-//   });
+app
+  .command('clear', 'Resets the console to a blank slate.')
+  .alias('cls')
+  .action(function(args: ParsedArgs){
+    app.ui.redraw.clear();
+  });
 
 app
   .delimiter('playbook~$')
@@ -256,13 +256,11 @@ function deletePlay(play: Play): Promise<void>{
     });
 }
 
-function runPlay(play: Play): Promise<void>{
-  return new Promise<void>((resolve, reject) => {
-    procManager = play.run();
+function runPlay(play: Play): Promise<void> {
+  procManager = play.run();
 
-    return procManager.render((text) => {
-      app.ui.redraw(text);
-    }, 100);
+  return procManager.render((text) => {
+    app.ui.redraw(text);
   });
 }
 

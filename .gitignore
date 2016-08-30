@@ -29,6 +29,8 @@ typings
 .nyc_output
 coverage
 dist
+test/*/bin
+test/*/obj
 
 # Optional npm cache directory
 .npm

@@ -9,8 +9,8 @@
   },
   "scripts": {
     "test": "gulp test",
+    "setup": "npm install && typings install",
     "coverage": "nyc report --reporter=text-lcov | coveralls",
-    "postinstall": "typings install",
     "preversion": "npm test",
     "version": "git add -A",
     "postversion": "git push && git push --tags && npm publish --access=public"

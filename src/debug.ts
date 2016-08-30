@@ -11,5 +11,5 @@ pb.get('main-app').then(play => {
   return procManager.render((text) => {
     process.stdout.write('\x1B[2J\x1B[0f');
     process.stdout.write(text);
-  }, 400);
+  });
 });

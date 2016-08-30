@@ -17,10 +17,10 @@ namespace ConsoleApplication
             while(true)
             {
                 var num = rand.NextDouble();
-                if(num < 0.9){
+                if(num < 0.8){
                     Console.WriteLine("It was a safe result!");
                 } else {
-                    Console.Error.WriteLine("It was a terrible result!");
+                    Console.Error.WriteLine("It was a terrible result! " + (new Exception("Ahhhh! " + (DateTime.Now - DateTime.MinValue).TotalMilliseconds, new Exception("Fancy Inner Exception!!!!!\r\n(with newline!)"))).ToString());
                 }
                 await Task.Delay(100);
             }
