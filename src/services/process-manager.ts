@@ -197,7 +197,7 @@ Output:
   }
 
   private _shortenOutput(text: string): string {
-    return text.substring(0, (<WriteStream>process.stdout).columns - 2);
+    return text.substring(0, ((<WriteStream>process.stdout).columns || 80) - 2);
   }
 
   private _redraw(): void {
