@@ -8,9 +8,10 @@ const ansiEscapes = require('ansi-escapes');
 import {Playbook, Project, Play} from '../';
 import {ProcessManager} from '../services/process-manager';
 
-interface Answers {
-  [key: string]: any;
-}
+// Check for updates...
+const updateNotifier = require('update-notifier');
+const pkg = require('../../package.json');
+updateNotifier({pkg}).notify();
 
 const app = require('vorpal')();
 
@@ -167,8 +168,8 @@ function inputPlayName(args: ParsedArgs): Promise<string> {
         message: 'What is the name of this play? ',
         default: args['name'],
       }
-    ]).then((answers: Answers) => {
-      return <string>answers[answerName];
+    ]).then((answers: Lookup<string>) => {
+      return answers[answerName];
     });
 }
 
@@ -193,8 +194,8 @@ function selectPlay(args: ParsedArgs): Promise<Play> {
             return {name: play.toString(), value: play.name}
           })
         }
-      ]).then((answers: Answers): Promise<Play> => {
-        playName = <string>answers[answerName];
+      ]).then((answers: Lookup<string>): Promise<Play> => {
+        playName = answers[answerName];
         let play = plays.find(p => p.name === playName);
         if (play) {
           return Promise.resolve(play);
@@ -224,8 +225,8 @@ function editPlay(play: Play): Promise<void> {
             default: defaults
           }
         ])
-        .then((answers: Answers) => {
-          return <string[]>answers[answerName];
+        .then((answers: Lookup<string[]>) => {
+          return answers[answerName];
         })
         .then((projNames: string[]) => {
           const newProjectList = new Set(projNames);
@@ -246,8 +247,8 @@ function deletePlay(play: Play): Promise<void>{
         name: answerName,
         message: `Are you sure you want to delete "${play.toString()}"? `,
       }
-    ]).then((answers: Answers) => {
-      let yes = <boolean>answers[answerName];
+    ]).then((answers: Lookup<boolean>) => {
+      let yes = answers[answerName];
 
       if (yes) {
         return pb.delete(play);
