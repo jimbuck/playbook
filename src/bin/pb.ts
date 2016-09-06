@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import {Question, Separator} from 'inquirer';
-import {ParsedArgs} from 'minimist';
+import * as minimist from 'minimist';
 const chalk = require('chalk');
 const ansiEscapes = require('ansi-escapes');
 
@@ -11,7 +11,14 @@ import {ProcessManager} from '../services/process-manager';
 // Check for updates...
 const updateNotifier = require('update-notifier');
 const pkg = require('../../package.json');
-updateNotifier({pkg}).notify();
+updateNotifier({ pkg }).notify();
+
+let args = minimist(process.argv);
+if (args['version'] || args['v']) {
+  console.log(args);
+  console.log(pkg.version);
+  process.exit(0);
+}
 
 const app = require('vorpal')();
 
@@ -33,7 +40,7 @@ app
   .command('list [playName]', 'Shows available plays currently regsitered.')
   .alias('ls', 'show')
   .autocomplete(autocompletePlays)
-  .action(function (args: ParsedArgs) {
+  .action(function (args: minimist.ParsedArgs) {
     return showPlays.call(this, args)
       .catch((err: Error) => {
         this.log(chalk.bgRed.white('An error occured while listing...'));
@@ -44,7 +51,7 @@ let lastCreatedPlay: Play;
 app
   .command('new [playName]', 'Create a new play with a collection of projects.')
   .alias('create')
-  .action(function (args: ParsedArgs) {
+  .action(function (args: minimist.ParsedArgs) {
     let action: Promise<Play>;
     lastCreatedPlay = null;
     return inputPlayName.call(this, args)
@@ -68,7 +75,7 @@ app
   .command('edit [playName]', 'Edit the projects assigned to an existing play.')
   .alias('update', 'change')
   .autocomplete(autocompletePlays)
-  .action(function (args: ParsedArgs) {
+  .action(function (args: minimist.ParsedArgs) {
     
     return selectPlay.call(this, args)
       .then(editPlay.bind(this))
@@ -81,7 +88,7 @@ app
   .command('delete [playName]', 'Delete an existing play.')
   .alias('del', 'remove', 'rm')
   .autocomplete(autocompletePlays)
-  .action(function (args: ParsedArgs) {
+  .action(function (args: minimist.ParsedArgs) {
     
     return selectPlay.call(this, args)
       .then(deletePlay.bind(this))
@@ -94,7 +101,7 @@ app
   .command('run [playName]', 'Run a play!')
   .alias('exec', 'start')
   .autocomplete(autocompletePlays)
-  .action(function (args: ParsedArgs) {
+  .action(function (args: minimist.ParsedArgs) {
     
     return selectPlay.call(this, args)
       .then(runPlay.bind(this))
@@ -104,13 +111,23 @@ app
   })
   .cancel(function () {
     procManager.cancel();
+    this.log(`Cancelled!`);
   });
 
 app
   .command('clear', 'Resets the console to a blank slate.')
   .alias('cls')
-  .action(function(args: ParsedArgs){
-    app.ui.redraw.clear();
+  .action(function(args: minimist.ParsedArgs, cb: () => void){
+    this.log(ansiEscapes.clearScreen);
+    cb();
+  });
+
+app
+  .command('version', 'Prints the current version of playbook.')
+  .alias('v')
+  .action(function (args: minimist.ParsedArgs, cb: () => void) {
+    this.log(pkg.version);
+    cb();
   });
 
 app
@@ -123,7 +140,7 @@ app
 
 //#region Actions
 
-function showPlays(args: ParsedArgs): Promise<void>{
+function showPlays(args: minimist.ParsedArgs): Promise<void>{
 
   let playName = args['playName'];
 
@@ -152,7 +169,7 @@ function showPlays(args: ParsedArgs): Promise<void>{
     });
 }
 
-function inputPlayName(args: ParsedArgs): Promise<string> {
+function inputPlayName(args: minimist.ParsedArgs): Promise<string> {
   const answerName = 'name';
   let playName = args['playName'];
 
@@ -173,7 +190,7 @@ function inputPlayName(args: ParsedArgs): Promise<string> {
     });
 }
 
-function selectPlay(args: ParsedArgs): Promise<Play> {
+function selectPlay(args: minimist.ParsedArgs): Promise<Play> {
   const answerName = 'playName';
   let playName = args['playName'];
 
