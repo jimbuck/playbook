@@ -3,8 +3,11 @@ A simple tool for running multiple projects at once.
 
 [![Build Status](https://travis-ci.org/JimmyBoh/playbook.svg?branch=master)](https://travis-ci.org/JimmyBoh/playbook)
 [![Coverage Status](https://coveralls.io/repos/github/JimmyBoh/playbook/badge.svg?branch=master)](https://coveralls.io/github/JimmyBoh/playbook?branch=master)
-[![NPM Dependencies](https://david-dm.org/JimmyBoh/playbook.svg)](https://david-dm.org/JimmyBoh/playbook)
-[![devDependencies Status](https://david-dm.org/JimmyBoh/playbook/dev-status.svg)](https://david-dm.org/JimmyBoh/playbook?type=dev)
+
+
+[![npm (scoped)](https://img.shields.io/npm/v/@jimmyboh/playbook.svg?maxAge=2592000)](https://www.npmjs.com/package/@jimmyboh/playbook)
+[![npm Dependencies](https://david-dm.org/JimmyBoh/playbook.svg)](https://david-dm.org/JimmyBoh/playbook)
+[![devDependencies](https://david-dm.org/JimmyBoh/playbook/dev-status.svg)](https://david-dm.org/JimmyBoh/playbook?type=dev)
 
 
 This module will recursively scan the current directory, looking for supported project types. After selecting which projects you'd like to run, it will execute them all simultaneously, perfect for those multi-tiered projects!
