@@ -56,7 +56,6 @@ interface ProcessTracker {
   color?: (message: any) => string;
   bgColor?: (message: any) => string;
   lastError?: string;
-  exitCode?: number;
 }
 
 class StatusQueue extends Queue<string>
@@ -134,7 +133,6 @@ export class ProcessManager {
 
       tracker.process.on('error', (code: number, signal: string) => {
         tracker.step++;
-        tracker.exitCode = code;
         tracker.buffer.enqueue(RED_BLOCK);
         this._lastOutput[tracker.name] = `Process Error: ${code} (${signal})`;
         this._redraw();
@@ -142,8 +140,7 @@ export class ProcessManager {
 
       tracker.process.on('exit', (code: number, signal: string) => {
         tracker.step++;
-        tracker.exitCode = code;
-        tracker.buffer.enqueue(code === 0 ? GRAY_BLOCK : RED_BLOCK);
+        tracker.buffer.enqueue(GRAY_BLOCK);
         this._lastOutput[tracker.name] = this._lastOutput[tracker.name] || `Process Exit: ${code} (${signal})`;
         this._redraw();
       });
