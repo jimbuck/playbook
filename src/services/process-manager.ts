@@ -47,13 +47,12 @@ const GRAY_BLOCK = chalk.gray('█');
 const GREEN_BLOCK = chalk.green('█');
 const YELLOW_BLOCK = chalk.yellow('█');
 const RED_BLOCK = chalk.red('█');
-const STATUS_BAR_WIDTH = 40;
 
 interface ProcessTracker {
   name: string;
   process: ChildProcess;
   step: number;
-  buffer: Queue<string>;
+  buffer: StatusQueue;
   color?: (message: any) => string;
   bgColor?: (message: any) => string;
   lastError?: string;
@@ -63,15 +62,29 @@ interface ProcessTracker {
 class StatusQueue extends Queue<string>
 {
   constructor() {
-    super(STATUS_BAR_WIDTH);
+    super(200);
 
-    for (let i = 0; i < STATUS_BAR_WIDTH; i++) {
+    for (let i = 0; i < this.limit; i++) {
       this.enqueue(GRAY_LINE);
     }
   }
 
-  public toString() {
-    return this.toArray().join('');
+  public toString(): string;
+  public toString(allowedWidth: number): string;
+
+  public toString(allowedWidth?: number): string {
+    if (typeof allowedWidth !== 'number') {
+      allowedWidth = this.limit;
+    }
+
+    if (allowedWidth === 0) {
+      return '';
+    }
+
+    return this
+      .toArray()
+      .slice(-allowedWidth)
+      .join('');
   }
 }
 
@@ -108,14 +121,14 @@ export class ProcessManager {
       tracker.process.stdout.on('data', (data: string) => {
         tracker.step++;
         tracker.buffer.enqueue(GREEN_BLOCK);
-        this._lastOutput[tracker.name] = tracker.color(this._scrubOutput(data));
+        this._lastOutput[tracker.name] = this._scrubOutput(data);
         this._redraw();
       });
 
       tracker.process.stderr.on('data', (data: string) => {
         tracker.step++;
         tracker.buffer.enqueue(YELLOW_BLOCK);
-        this._lastOutput[tracker.name] = tracker.color(this._scrubOutput(data));
+        this._lastOutput[tracker.name] = this._scrubOutput(data);
         this._redraw();
       });
 
@@ -123,7 +136,7 @@ export class ProcessManager {
         tracker.step++;
         tracker.exitCode = code;
         tracker.buffer.enqueue(RED_BLOCK);
-        this._lastOutput[tracker.name] = tracker.color(`Process Error: ${code} (${signal})`);
+        this._lastOutput[tracker.name] = `Process Error: ${code} (${signal})`;
         this._redraw();
       });
 
@@ -131,7 +144,7 @@ export class ProcessManager {
         tracker.step++;
         tracker.exitCode = code;
         tracker.buffer.enqueue(code === 0 ? GRAY_BLOCK : RED_BLOCK);
-        this._lastOutput[tracker.name] = this._lastOutput[tracker.name] || tracker.color(`Process Exit: ${code} (${signal})`);
+        this._lastOutput[tracker.name] = this._lastOutput[tracker.name] || `Process Exit: ${code} (${signal})`;
         this._redraw();
       });
 
@@ -159,9 +172,19 @@ export class ProcessManager {
 `;
 
         let projectNum = 0;
+        const consoleWidth = ((<WriteStream>process.stdout).columns || 80) - 2;
         let projectList = this._processes.map(proc => {
           let paddingSpaces = (new Array(Math.max(0, this._maxNameLength - proc.name.length))).fill(' ').join('');
-          return `${paddingSpaces}${proc.color(proc.name)}: ${proc.buffer.toString()} ${getSpinnerChar(proc)}`;
+          let titleLength = paddingSpaces.length + proc.name.length + 1; // Plus one for the colon...
+          let line = `${paddingSpaces + proc.color(proc.name)}:`;
+          if (consoleWidth > titleLength + 3) {
+            let bufferWidth = consoleWidth - (titleLength + 3); // start space, end space and one spinner char...
+            line += ` ${proc.buffer.toString(bufferWidth)}`;
+          }
+
+          line += ` ${getSpinnerChar(proc)}`;
+          
+          return line;
         }).join(EOL);
 
         drawString += projectList;
@@ -171,10 +194,10 @@ Output:
 ------------------------------------
 `;
         let now = Date.now();
-        this._processNames.forEach(procName => {
-          let output = this._lastOutput[procName];
+        this._processes.forEach(proc => {
+          let output = this._lastOutput[proc.name];
           if (output) {
-            drawString += this._shortenOutput(output) + EOL;
+            drawString += proc.color(this._shortenOutput(output, consoleWidth)) + EOL;
           }
         });
 
@@ -196,8 +219,8 @@ Output:
       .replace(INVALID_CHAR_REGEX, '¶');
   }
 
-  private _shortenOutput(text: string): string {
-    return text.substring(0, ((<WriteStream>process.stdout).columns || 80) - 2);
+  private _shortenOutput(text: string, consoleWidth: number = 80): string {
+    return text.substring(0, consoleWidth);
   }
 
   private _redraw(): void {
