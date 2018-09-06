@@ -13,11 +13,8 @@ export interface ProjectHandler
 
   /**
    * Checks whether a found project matches this handler.
-   * 
-   * @param {string} path
-   * @returns {(IProject | IProject[])}
    */
-  extract(path: string, content: string): IProject | IProject[]; 
+  extract(path: string, content: string): IProject[]; 
 }
 
 export interface IProject

@@ -1,8 +1,7 @@
 import {join, resolve} from 'path';
 import {test} from 'ava';
-import {flatten, forp, FileSystemIterator, Queue} from './utils';
+import {flatten, parallelMap, FileSystemIterator, Queue} from './utils';
 
-const NO_OP = () => { };
 const TEST_DIR = resolve(__dirname, '../../test');
 
 console.log(`The TEST_DIR is "${TEST_DIR}".`);
@@ -27,92 +26,73 @@ test(`'flatten' ignores "undefined" elements`, t => {
   t.deepEqual(output, expectedOutput);
 });
 
-test(`'forp' accepts a list of items and returns a promise`, t => {
-  let result = forp([1], (num, index) => {
-    return num;
-  });
+test(`'parallelMap' accepts a list of items and returns a promise`, async (t) => {
+  const EXPECTED_VALUE = 1;
+  let results = await parallelMap([EXPECTED_VALUE], async (item, index) => item);
 
-  t.true(typeof result.then === 'function');
+  t.is(results.length, 1);
+  t.is(results[0], EXPECTED_VALUE);
+});
+
+test(`'parallelMap' handles syncronous handlers`, async (t) => {
+  const input = [1, 2, 3, 4];
+  const EXPECTEDITEMS = ['#2', '#4', '#6', '#8'];
   
-  return result.then(NO_OP);
-});
+  const actualItems = await parallelMap(input, async (num) => '#' + (num * 2));
 
-test(`'forp' handles syncronous handlers`, t => {
-  let input = [1, 2, 3, 4];
-  let expectedItems = ['#2', '#4', '#6', '#8'];
-  return forp(input, (num, index) => {
-    return '#' + (num * 2);
-  }).then((actualItems) => {
-    actualItems.forEach((str, index) => {
-      t.is(str, expectedItems[index]);
-    });
+  actualItems.forEach((str, index) => {
+    t.is(str, EXPECTEDITEMS[index]);
   });
 });
 
-test(`'forp' handlers allow multiple return values`, t => {
-  let input = [1, 2, 3, 4];
-  let expectedItems = ['#1', '#2', '#2', '#4', '#3', '#6', '#4', '#8'];
-  return forp(input, (num, index) => {
-    return ['#' + num, '#' + (num * 2)];
-  }).then((actualItems) => {
-    actualItems.forEach((str, index) => {
-      t.is(str, expectedItems[index]);
-    });
+test(`'parallelMap' handlers allow multiple return values`, async (t) => {
+  const input = [1, 2, 3, 4];
+  const expectedItems = ['#1', '#2', '#2', '#4', '#3', '#6', '#4', '#8'];
+
+  const actualItems = await parallelMap(input, async (num) => ['#' + num, '#' + (num * 2)]);
+
+  actualItems.forEach((str, index) => {
+    t.is(str, expectedItems[index]);
   });
 });
 
-test(`'forp' handles single return promise `, t => {
-  let input = [1, 2, 3, 4];
-  let expectedItems = ['#1', '#2', '#3', '#4'];
-  return forp<number, string>(input, (num, index) => {
-    return new Promise<string>((resolve, reject) => {
-      setTimeout(() => {
-        resolve('#' + num);
-      }, 100);
-    });
-  }).then((actualItems) => {
-    actualItems.forEach((str, index) => {
-      t.is(str, expectedItems[index]);
-    });
+test(`'parallelMap' handles single return promise `, async (t) => {
+  const input = [1, 2, 3, 4];
+  const expectedItems = ['#1', '#2', '#3', '#4'];
+
+  const actualItems = await parallelMap<number, string>(input, async (num) => {
+    await delay(100);
+    return `#${num}`;
+  });
+
+  actualItems.forEach((str, index) => {
+    t.is(str, expectedItems[index]);
   });
 });
 
-test(`'forp' skips empty returns`, t => {
+test(`'parallelMap' skips empty returns`, async (t) => {
   let input = [1, 2, 3, 4];
   let expectedItems = ['#2', '#4'];
-  return forp<number, string>(input, (num, index) => {
+
+  const actualItems = await parallelMap<number, string>(input, async (num) => {
     if (num % 2 === 0) {
-      return '#' + num;
+      return `#${num}`;
     } else {
       return [];
     }
-  }).then((actualItems) => {
-    actualItems.forEach((str, index) => {
-      t.is(str, expectedItems[index]);
-    });
+  });
+
+  actualItems.forEach((str, index) => {
+    t.is(str, expectedItems[index]);
   });
 });
 
-test(`'FileSystemIterator.scan' returns target files`, t => {
-  let fsIterator = new FileSystemIterator(['package.json']);
-  const expectedPaths = [join(TEST_DIR, 'dotnet-b', 'package.json'), join(TEST_DIR, 'node-a', 'package.json'), join(TEST_DIR, 'node-b', 'package.json'), join(TEST_DIR, 'ignored-folder', 'package.json')];
-
-  return fsIterator
-    .scan(TEST_DIR)
-    .then((paths: string[]) => {
-      t.is(paths.length, expectedPaths.length);
-      paths.forEach(p => {
-        t.true(expectedPaths.indexOf(p) > -1);
-      });
-    });
-});
-
-test(`'FileSystemIterator.iterate' skips specified folders`, t => {
+test(`'FileSystemIterator.scan' skips specified folders`, t => {
   let fsIterator = new FileSystemIterator(['package.json'], ['ignored-folder']);
   const expectedPaths = [join(TEST_DIR, 'dotnet-b', 'package.json'), join(TEST_DIR, 'node-a', 'package.json'), join(TEST_DIR, 'node-b', 'package.json')];
 
   return fsIterator
-    .iterate(TEST_DIR, p => {
+    .scan(TEST_DIR, async (p) => {
       t.false(expectedPaths.indexOf(p) < 0, `Not found (${p})!`);
     });
 });
@@ -122,7 +102,7 @@ test(`'FileSystemIterator.map' converts provided paths`, t => {
   const expectedPaths = [join(TEST_DIR, 'dotnet-b', 'package.json'), join(TEST_DIR, 'node-a', 'package.json'), join(TEST_DIR, 'node-b', 'package.json')];
 
   return fsIterator
-    .map(TEST_DIR, p => {
+    .map(TEST_DIR, async (p) => {
 
       if (p.endsWith('json')) {
         return [p, p];
@@ -214,9 +194,5 @@ test(`'Queue.toString' is the same as Array.toString`, t => {
 });
 
 function delay(duration: number): Promise<void> {
-  return new Promise<void>((resolve, reject) => {
-    setTimeout(() => {
-      resolve();
-    }, duration);
-  });
+  return new Promise<void>(resolve => setTimeout(resolve, duration));
 }

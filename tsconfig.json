@@ -8,9 +8,7 @@
     "inlineSourceMap": true,
     "removeComments": false,
     "rootDir": "src",
-    "outDir": "dist",
-    "declaration": true,
-    "noImplicitAny": true
+    "outDir": "dist"
   },
   "exclude": [
     "node_modules",

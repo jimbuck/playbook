@@ -98,7 +98,7 @@ export class ProcessManager {
   private _lastDrawTime: number = 0;
   private _drawThrottle: number;
 
-  private _lastOutput: Lookup<string> = {};
+  private _lastOutput: { [key: string]: string; } = {};
 
   private _isCancelled: boolean = false;
 

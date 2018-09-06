@@ -4,9 +4,7 @@ import * as path from 'path';
 import * as pify from 'pify';
 const $fs = pify(fs);
 
-const NO_OP = () => { };
-
-export type AsyncResult<T> = T | T[] | PromiseLike<T | T[]>;
+export type OneOrMany<T> = T | Array<T>;
 
 /**
  * Recursively flattens an array, ignoring any undefined elements.
@@ -15,8 +13,10 @@ export type AsyncResult<T> = T | T[] | PromiseLike<T | T[]>;
  * @param {any[]} array
  * @returns {any[]}
  */
-export function flatten<T>(array: any[]): T[] {
+export function flatten<T>(array: T|Array<OneOrMany<T>>): Array<T> {
   let flattenedArray: any[] = [];
+
+  if (!Array.isArray(array)) return [array];
 
   array.forEach(val => {
     if (Array.isArray(val)) {
@@ -29,18 +29,25 @@ export function flatten<T>(array: any[]): T[] {
   return flattenedArray;
 }
 
-export function forp<TItem, TResult>(items: TItem[], handler: (item: TItem, index: number) => AsyncResult<TResult>): Promise<TResult[]> {
-  let tasks: Array<AsyncResult<TResult>> = [];
-
+export async function parallelFor<T>(items: T[], handler: (item: T, index: number) => Promise<void>): Promise<void> {
+  let tasks = [];
   for (let i = 0; i < items.length; i++) {
-    let result = handler(items[i], i);
-
-    tasks.push(result);
+    tasks.push(handler(items[i], i));
   }
 
-  return Promise
-    .all(tasks)
-    .then(flatten);
+  await Promise.all(tasks);
+}
+
+export async function parallelMap<TItem, TResult>(items: TItem[], handler: (item: TItem, index: number) => Promise<OneOrMany<TResult>>): Promise<Array<TResult>> {
+  let results: Array<TResult> = [];
+
+  await parallelFor(items, async (item, index) => {
+    let result = await Promise.resolve<OneOrMany<TResult>>(handler(item, index)).then(result => Array.isArray(result) ? result : [result]);
+
+    results.push(...result);
+  });
+    
+  return results;
 }
 
 export class FileSystemIterator {
@@ -49,50 +56,40 @@ export class FileSystemIterator {
     this.ignoreFolders = this.ignoreFolders || [];
   }
 
-  scan(dir: string): Promise<string[]> {
-    return this.map(dir, p => p);
+  public async scan(dir: string, handler: (path: string) => Promise<void>): Promise<void> {
+    await this.map<void>(dir, handler);
   }
 
-  iterate(dir: string, handler: (path: string) => void): Promise<void> {
-    return this
-      .map<void>(dir, handler)
-      .then(NO_OP); // Empty promise so we can force it to be void instead of void[].
-  }
+  public async map<T>(dir: string, handler: (path: string) => Promise<OneOrMany<T>>): Promise<Array<T>> {
+    const paths: string[] = await $fs.readdir(dir);
+    
+    return await parallelMap(paths, async (filename) => {
+      const fullPath = path.join(dir, filename);
 
-  map<T>(dir: string, handler: (path: string) => AsyncResult<T>): Promise<T[]> {
-    return $fs
-      .readdir(dir)
-      .then((paths: string[]) => {
+      if (this.ignoreFolders.some(ignoredFolder => filename === ignoredFolder)) {
+        // It matches a folder/file in the ignore path, stop here...
+        return [];
+      }
 
-        return forp(paths, (filename) => {
-          let fullPath = path.join(dir, filename);
+      if (this.targetFiles.some(targetFile => filename === targetFile)) {
+        // It matches a target file! (handle it and stop here)...
+        return handler(fullPath);
+      }
 
-          if (this.ignoreFolders.some((f: string) => filename === f)) {
-            // It matches a folder/file in the ignore path, stop here...
-            return [];
-          }
+      try {
+        const stats: fs.Stats = await $fs.lstat(fullPath);
 
-          if (this.targetFiles.some((f: string) => filename === f)) {
-            // It matches a target file! (handle it and stop here)...
-            return handler(fullPath);
-          }
+        if (stats.isDirectory()) {
+          return this.map(fullPath, handler);
+        }
+      } catch (err) {
+        // Do nothing, we just can't access that file (no biggie).
+      }
 
-          return $fs
-            .lstat(fullPath)
-            .then((stats: fs.Stats): AsyncResult<T> => {
-              if (stats.isDirectory()) {
-                return this.map<T>(fullPath, handler);
-              } else {
-                return [];
-              }
-            }, (err: any) => {
-              // Do nothing, we just can't access that file (no biggie).
-            });
-        });
-      }).then(flatten);
+      return [];
+    });
   }
 }
-
 
 /**
  * A simple queue with optional size limitation.

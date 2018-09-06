@@ -6,9 +6,9 @@ const $fs = pify(fs);
 
 const Conf = require('conf');
 
-import {flatten, forp, FileSystemIterator} from './utils';
+import {flatten, FileSystemIterator} from './utils';
 import {Play} from '../models/play';
-import {ProjectHandler, Project} from '../models/project';
+import {ProjectHandler, Project, IProject} from '../models/project';
 
 import {nodeHandler} from '../handlers/node';
 import {dotnetHandler} from '../handlers/dotnet';
@@ -65,17 +65,19 @@ export class Playbook {
     return Promise.resolve();
   }
 
-  public findProjects(cwd: string): Promise<Project[]> {
-    return this._fsIterator.map(cwd, (path: string) => {
-      return $fs.readFile(path, 'utf8').then((content: string) => {
-        return PROJECT_HANDLERS.map(projectHandler => {
-          if (projectHandler.files.some(file => path.endsWith(file))) {
-            return projectHandler.extract(path, content);
-          }
-          return [];
-        });
-      });
+  public async findProjects(cwd: string): Promise<IProject[]> {
+    const results = await this._fsIterator.map<IProject>(cwd, async (path: string) => {
+      const content: string = await $fs.readFile(path, 'utf8');
+
+      return flatten(PROJECT_HANDLERS.map(projectHandler => {
+        if (projectHandler.files.some(file => path.endsWith(file))) {
+          return projectHandler.extract(path, content);
+        }
+        return [];
+      }));
     });
+
+    return results;
   }
 
   private exists(playName: string): Promise<boolean> {

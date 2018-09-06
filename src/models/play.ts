@@ -1,7 +1,7 @@
 
-import {ChildProcess, exec} from 'child_process';
+import { exec } from 'child_process';
 
-import {IProject, Project} from './project';
+import { IProject, Project } from './project';
 
 export interface IPlay
 {
@@ -18,7 +18,7 @@ export class Play
 
   public projects: Project[];
 
-  constructor(data: IPlay) {
+  constructor(data: IPlay, private execFn: any = exec) {
     if (!data || !data.name || data.name.length === 0) {
       throw new Error(`'name' is required!`);
     }
@@ -31,7 +31,7 @@ export class Play
   public run(): Project[]
   {
     return this.projects.map(proj => {
-      proj.currentProcess = exec(`${proj.command} ${proj.args.join(' ')}`, { cwd: proj.cwd });
+      proj.currentProcess = this.execFn(`${proj.command} ${proj.args.join(' ')}`, { cwd: proj.cwd });
       return proj;
     });
   }

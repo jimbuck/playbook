@@ -1,5 +1,3 @@
-/// <reference path="./typings/index.d.ts" />
-
 declare class Conf
 {
   public get(key: string): any;
@@ -9,9 +7,4 @@ declare class Conf
   public delete(key: string): void;
 
   public has(key: string): boolean;
-}
-
-declare interface Lookup<T>
-{
-  [key: string]: T;
 }

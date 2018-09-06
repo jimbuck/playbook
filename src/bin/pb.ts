@@ -185,7 +185,7 @@ function inputPlayName(args: minimist.ParsedArgs): Promise<string> {
         message: 'What is the name of this play? ',
         default: args['name'],
       }
-    ]).then((answers: Lookup<string>) => {
+    ]).then((answers: { [key: string]: string }) => {
       return answers[answerName];
     });
 }
@@ -211,7 +211,7 @@ function selectPlay(args: minimist.ParsedArgs): Promise<Play> {
             return {name: play.toString(), value: play.name}
           })
         }
-      ]).then((answers: Lookup<string>): Promise<Play> => {
+      ]).then((answers: { [key: string]: string }): Promise<Play> => {
         playName = answers[answerName];
         let play = plays.find(p => p.name === playName);
         if (play) {
@@ -242,7 +242,7 @@ function editPlay(play: Play): Promise<void> {
             default: defaults
           }
         ])
-        .then((answers: Lookup<string[]>) => {
+        .then((answers: { [key: string]: string[] }) => {
           return answers[answerName];
         })
         .then((projNames: string[]) => {
@@ -264,7 +264,7 @@ function deletePlay(play: Play): Promise<void>{
         name: answerName,
         message: `Are you sure you want to delete "${play.toString()}"? `,
       }
-    ]).then((answers: Lookup<boolean>) => {
+    ]).then((answers: { [key: string]: boolean }) => {
       let yes = answers[answerName];
 
       if (yes) {

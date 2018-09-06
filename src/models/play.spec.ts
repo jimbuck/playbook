@@ -1,6 +1,6 @@
 import {resolve} from 'path';
 import {ChildProcess, ExecOptions} from 'child_process';
-import * as child_process from 'child_process';
+import child_process from 'child_process';
 
 import {test} from 'ava';
 import {Play, IPlay} from './play';
@@ -60,36 +60,32 @@ test(`'Play' options populate values`, t => {
 });
 
 test(`'run' executes each project`, t => {
-  let origExec = child_process.exec;
-
-  let expectedProj: IProject = {
+  const mockExec = (command: string, args: ExecOptions): ChildProcess => {
+    t.is(command, `${EXPECTED_PROJ.command} ${EXPECTED_PROJ.args.join(' ')}`);
+    t.is(args.cwd, EXPECTED_PROJ.cwd);
+    return null;
+  };
+  
+  const EXPECTED_PROJ: IProject = {
     name: 'One Fish',
     cwd: '/two/fish',
     command: 'red-fish',
     args: ['blue', 'fish']
   };
 
-  let expected: IPlay = {
+  const EXPECTED_PLAY: IPlay = {
     name: 'Next Best Thing',
     cwd: '/some/test/location',
-    projects: [expectedProj]
+    projects: [EXPECTED_PROJ]
   };
 
-  child_process.exec = (command: string, args: ExecOptions): ChildProcess => {
-    t.is(command, `${expectedProj.command} ${expectedProj.args.join(' ')}`);
-    t.is(args.cwd, expectedProj.cwd);
-    return null;
-  }
-
-  let play = new Play(expected);
+  let play = new Play(EXPECTED_PLAY, mockExec);
 
   let result = play.run();
 
   t.is(result.length, 1);
   t.true(result[0] instanceof Project);
   t.is(result[0].currentProcess, null);
-
-  child_process.exec = origExec;
 });
 
 test(`Play 'toString' returns the name and project count`, t => {
