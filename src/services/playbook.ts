@@ -1,14 +1,12 @@
 import * as fs from 'fs';
-import {ChildProcess} from 'child_process';
-
 import * as pify from 'pify';
 const $fs = pify(fs);
 
-const Conf = require('conf');
+import Conf from 'conf';
 
 import {flatten, FileSystemIterator} from './utils';
 import {Play} from '../models/play';
-import {ProjectHandler, Project, IProject} from '../models/project';
+import {IProject} from '../models/project';
 
 import {nodeHandler} from '../handlers/node';
 import {dotnetHandler} from '../handlers/dotnet';
