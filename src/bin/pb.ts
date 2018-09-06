@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 
-import {Question, Separator} from 'inquirer';
+import { Question, Separator } from 'inquirer';
+import updateNotifier from 'update-notifier';
 import * as minimist from 'minimist';
-const chalk = require('chalk');
-const ansiEscapes = require('ansi-escapes');
+import chalk from 'chalk';
+import ansiEscapes from 'ansi-escapes';
 
 import {Playbook, Project, Play} from '../';
 import {ProcessManager} from '../services/process-manager';
 
 // Check for updates...
-const updateNotifier = require('update-notifier');
 const pkg = require('../../package.json');
 updateNotifier({ pkg }).notify();
 
@@ -52,7 +52,6 @@ app
   .command('new [playName]', 'Create a new play with a collection of projects.')
   .alias('create')
   .action(function (args: minimist.ParsedArgs) {
-    let action: Promise<Play>;
     lastCreatedPlay = null;
     return inputPlayName.call(this, args)
       .then((playName: string) => {
