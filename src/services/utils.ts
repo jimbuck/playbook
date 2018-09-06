@@ -1,10 +1,12 @@
 
-import * as fs from 'fs';
 import * as path from 'path';
-import * as pify from 'pify';
-const $fs = pify(fs);
+import * as fs from 'fs-jetpack';
 
 export type OneOrMany<T> = T | Array<T>;
+
+export function delay(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 /**
  * Recursively flattens an array, ignoring any undefined elements.
@@ -61,7 +63,7 @@ export class FileSystemIterator {
   }
 
   public async map<T>(dir: string, handler: (path: string) => Promise<OneOrMany<T>>): Promise<Array<T>> {
-    const paths: string[] = await $fs.readdir(dir);
+    const paths: string[] = await fs.listAsync(dir);
     
     return await parallelMap(paths, async (filename) => {
       const fullPath = path.join(dir, filename);
@@ -77,9 +79,9 @@ export class FileSystemIterator {
       }
 
       try {
-        const stats: fs.Stats = await $fs.lstat(fullPath);
+        const type = await fs.existsAsync(fullPath);
 
-        if (stats.isDirectory()) {
+        if (type === 'dir') {
           return this.map(fullPath, handler);
         }
       } catch (err) {
@@ -89,6 +91,15 @@ export class FileSystemIterator {
       return [];
     });
   }
+
+  // public async closest(dir: string): Promise<string> {
+  //   const paths: string[] = await $fs.readdir(dir);
+
+  // }
+
+  // public scanUp(dir: string): Promise<Array<string>> {
+    
+  // }
 }
 
 /**

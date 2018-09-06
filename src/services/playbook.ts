@@ -1,15 +1,13 @@
-import * as fs from 'fs';
-import * as pify from 'pify';
-const $fs = pify(fs);
-
-import Conf from 'conf';
+import * as fs from 'fs-jetpack';
+import Conf = require('conf');
 
 import {flatten, FileSystemIterator} from './utils';
 import {Play} from '../models/play';
 import {IProject} from '../models/project';
 
-import {nodeHandler} from '../handlers/node';
-import {dotnetHandler} from '../handlers/dotnet';
+import { nodeHandler } from '../handlers/node';
+import { dotnetHandler } from '../handlers/dotnet';
+import { ProcessManager } from './process-manager';
 
 const PROJECT_HANDLERS = [nodeHandler, dotnetHandler];
 
@@ -24,8 +22,25 @@ export class Playbook {
     this._fsIterator = new FileSystemIterator(acceptedFiles, ['node_modules', 'bower_components', 'typings', 'artifacts', 'bin', 'obj', 'packages']);
   }
 
+  public get lineLimit(): number {
+    let limit: number;
+
+    try {
+      limit = parseInt(this._storage.get('lineLimit'), 10);
+      if (isNaN(limit) || limit < 1) limit = 1;
+    } catch (err) {
+      limit = 1;
+    }
+
+    return limit;
+  }
+
+  public set lineLimit(value: number) {
+    this._storage.set('lineLimit', value);
+  }
+
   public getAll(): Promise<Play[]> {
-    let projectHash = this._storage.get('data.plays') || {};
+    let projectHash = this._storage.get('plays') || {};
     return Promise.resolve(Object.keys(projectHash).map(projName => new Play(projectHash[projName])));
   }
 
@@ -51,21 +66,18 @@ export class Playbook {
       });
   }
 
-  public save(play: Play): Promise<Play> {
+  public async save(play: Play): Promise<Play> {
     this._storage.set(playPath(play.name), play);
-
-    return Promise.resolve(play);
+    return play;
   }
 
-  public delete(play: Play): Promise<void> {
+  public async delete(play: Play): Promise<void> {
     this._storage.delete(playPath(play.name));
-
-    return Promise.resolve();
   }
 
   public async findProjects(cwd: string): Promise<IProject[]> {
     const results = await this._fsIterator.map<IProject>(cwd, async (path: string) => {
-      const content: string = await $fs.readFile(path, 'utf8');
+      const content: string = await fs.readAsync(path);
 
       return flatten(PROJECT_HANDLERS.map(projectHandler => {
         if (projectHandler.files.some(file => path.endsWith(file))) {
@@ -84,5 +96,5 @@ export class Playbook {
 }
 
 function playPath(playName: string): string {
-  return `data.plays.${playName}`;
+  return `plays.${playName}`;
 }

@@ -59,35 +59,6 @@ test(`'Play' options populate values`, t => {
   t.is(proj.cwd, expected.cwd);
 });
 
-test(`'run' executes each project`, t => {
-  const mockExec = (command: string, args: ExecOptions): ChildProcess => {
-    t.is(command, `${EXPECTED_PROJ.command} ${EXPECTED_PROJ.args.join(' ')}`);
-    t.is(args.cwd, EXPECTED_PROJ.cwd);
-    return null;
-  };
-  
-  const EXPECTED_PROJ: IProject = {
-    name: 'One Fish',
-    cwd: '/two/fish',
-    command: 'red-fish',
-    args: ['blue', 'fish']
-  };
-
-  const EXPECTED_PLAY: IPlay = {
-    name: 'Next Best Thing',
-    cwd: '/some/test/location',
-    projects: [EXPECTED_PROJ]
-  };
-
-  let play = new Play(EXPECTED_PLAY, mockExec);
-
-  let result = play.run();
-
-  t.is(result.length, 1);
-  t.true(result[0] instanceof Project);
-  t.is(result[0].currentProcess, null);
-});
-
 test(`Play 'toString' returns the name and project count`, t => {
   let expected: IPlay = {
     name: 'Next Best Thing',

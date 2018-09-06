@@ -1,7 +1,5 @@
 
-import {ChildProcess} from 'child_process';
-import {Answers} from 'inquirer';
-import {ParsedArgs} from 'minimist';
+import { ChildProcess } from 'child_process';
 
 export interface ProjectHandler
 {
@@ -27,6 +25,10 @@ export interface IProject
 
   args?: string[];
 
+  enabled?: boolean;
+
+  delay?: number;
+
   currentProcess?: ChildProcess;
 }
 
@@ -40,6 +42,10 @@ export class Project implements IProject
 
   public args: string[];
 
+  public enabled: boolean;
+
+  public delay: number;
+
   public currentProcess: ChildProcess;
 
   constructor(opts?: IProject) {
@@ -47,6 +53,8 @@ export class Project implements IProject
     this.cwd = opts && opts.cwd;
     this.command = opts && opts.command;
     this.args = (opts && opts.args) || [];
+    this.enabled = (opts && typeof opts.enabled === 'boolean') ? opts.enabled : true;
+    this.delay = (opts && opts.delay) || 0;
     this.currentProcess = opts && opts.currentProcess;
   }
 }

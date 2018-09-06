@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { Question, Separator } from 'inquirer';
-import updateNotifier from 'update-notifier';
+import * as updateNotifier from 'update-notifier';
 import * as minimist from 'minimist';
 import chalk from 'chalk';
 import ansiEscapes from 'ansi-escapes';
@@ -23,7 +23,7 @@ if (args['version'] || args['v']) {
 const app = require('vorpal')();
 
 const pb = new Playbook();
-let procManager: ProcessManager;
+let processMgr: ProcessManager;
 
 //#region Commands
 
@@ -103,13 +103,16 @@ app
   .action(function (args: minimist.ParsedArgs) {
     
     return selectPlay.call(this, args)
-      .then(runPlay.bind(this))
+      .then(play => {
+        processMgr = new ProcessManager(play, pb.lineLimit);
+        return processMgr.execute(text => app.ui.redraw(text));
+      })
       .catch((err: Error) => {
         this.log(chalk.bgRed.white(err.message));
       });
   })
   .cancel(function () {
-    procManager.cancel();
+    processMgr.cancel();
     this.log(`Cancelled!`);
   });
 
@@ -270,14 +273,6 @@ function deletePlay(play: Play): Promise<void>{
         return pb.delete(play);
       }
     });
-}
-
-function runPlay(play: Play): Promise<void> {
-  procManager = new ProcessManager(play.run());
-
-  return procManager.render((text) => {
-    app.ui.redraw(text);
-  });
 }
 
 //#endregion

@@ -1,6 +1,3 @@
-
-import { exec } from 'child_process';
-
 import { IProject, Project } from './project';
 
 export interface IPlay
@@ -18,7 +15,7 @@ export class Play
 
   public projects: Project[];
 
-  constructor(data: IPlay, private execFn: any = exec) {
+  constructor(data: IPlay) {
     if (!data || !data.name || data.name.length === 0) {
       throw new Error(`'name' is required!`);
     }
@@ -26,14 +23,6 @@ export class Play
     this.name = data.name;
     this.cwd = data.cwd;
     this.projects = (data.projects || []).map(proj => new Project(proj));
-  }
-
-  public run(): Project[]
-  {
-    return this.projects.map(proj => {
-      proj.currentProcess = this.execFn(`${proj.command} ${proj.args.join(' ')}`, { cwd: proj.cwd });
-      return proj;
-    });
   }
   
   /**

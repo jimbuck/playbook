@@ -4,7 +4,7 @@ import {flatten, parallelMap, FileSystemIterator, Queue} from './utils';
 
 const TEST_DIR = resolve(__dirname, '../../test');
 
-console.log(`The TEST_DIR is "${TEST_DIR}".`);
+// console.log(`The TEST_DIR is "${TEST_DIR}".`);
 
 test(`'flatten' returns the same array if already flattened`, t => {
   let input = [2, 4, 6, 8];

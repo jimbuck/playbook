@@ -1,7 +1,6 @@
-import * as fs from 'fs';
+import * as fs from 'fs-jetpack';
 import {basename, dirname, join} from 'path';
-import * as pify from 'pify';
-const $fs = pify(fs);
+
 
 import {spawn, ChildProcess} from 'child_process';
 import {Question, Answers} from 'inquirer';
@@ -33,7 +32,7 @@ export const nodeHandler: ProjectHandler = {
 
       let projects: Project[] = [];
 
-      if(fs.existsSync(join(cwd, packageJson.main)))
+      if(fs.cwd(cwd).exists(packageJson.main))
       {
         projects.push(new NodeProject(cwd, packageJson));
       }
