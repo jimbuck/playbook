@@ -14,7 +14,6 @@
     "watch:build": "tsc --watch",
     "watch:test": "ava --watch",
     "test": "tsc && nyc --color -a ava -v",
-    "debug": "tsc && node ./dist/debug",
     "coverage": "nyc report --reporter=text-lcov | coveralls",
     "preversion": "npm test",
     "version": "git add -A",

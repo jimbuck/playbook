@@ -1,12 +1,8 @@
+import { ChildProcess } from 'child_process';
 import * as fs from 'fs-jetpack';
-import {basename, dirname, join} from 'path';
+import { basename, dirname } from 'path';
 
-
-import {spawn, ChildProcess} from 'child_process';
-import {Question, Answers} from 'inquirer';
-import {ParsedArgs} from 'minimist';
-
-import {ProjectHandler, IProject, Project} from '../models/project';
+import { ProjectHandler, Project } from '../models';
 
 const IGNORED_SCRIPTS = [
   'prepublish', 'publish', 'postpublish',
@@ -50,30 +46,39 @@ export const nodeHandler: ProjectHandler = {
 
       return projects;
     } catch (ex) {
-      //console.error(ex);
       return [];
     }
   }
 };
 
-class NodeProject extends Project {
-  constructor(path: string, packageJson: any, args: string[] = []) {
-    super({
-      name: `${packageJson.name} (node ${packageJson.main})`,
-      cwd: path,
-      command: 'node',
-      args: [packageJson.main, ...args]
-    });
+class NodeProject implements Project {
+  public name: string;
+  public cwd: string;
+  public command: string = 'node';
+  public args?: string[];
+  public enabled?: boolean;
+  public delay?: number;
+  public currentProcess?: ChildProcess;
+
+  constructor(cwd: string, packageJson: any, args: string[] = []) {
+    this.name = `${packageJson.name} (node ${packageJson.main})`;
+    this.cwd = cwd;
+    this.args = [packageJson.main, ...args];
   }
 }
 
-class NpmProject extends Project {
+class NpmProject implements Project {
+  public name: string;
+  public cwd: string;
+  public command: string = 'npm';
+  public args?: string[];
+  public enabled?: boolean;
+  public delay?: number;
+  public currentProcess?: ChildProcess;
+
   constructor(cwd: string, packageJson: any, command: string, args: string[] = []) {
-    super({
-      name: `${packageJson.name} (npm ${command})`,
-      cwd,
-      command: 'npm',
-      args: ['run', command, ...args]
-    });
+    this.name = `${packageJson.name} (node ${packageJson.main})`;
+    this.cwd = cwd;
+    this.args = ['run', command, ...args];
   }
 }

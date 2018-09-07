@@ -1,6 +1,7 @@
-import {basename, dirname} from 'path';
+import { basename, dirname } from 'path';
+import { ChildProcess } from 'child_process';
 
-import {ProjectHandler, Project} from '../models/project';
+import { ProjectHandler, Project } from '../models';
 
 export const dotnetHandler: ProjectHandler = {
   name: 'dotnet',
@@ -22,14 +23,19 @@ export const dotnetHandler: ProjectHandler = {
   }
 };
 
-class DotnetProject extends Project
+class DotnetProject implements Project
 {
+  public name: string;
+  public cwd: string;
+  public command: string = 'dotnet';
+  public args?: string[];
+  public enabled?: boolean;
+  public delay?: number;
+  public currentProcess?: ChildProcess;
+  
   constructor(cwd: string, projectJson: any, command: string, args: string[] = []) {
-    super({
-      name: `${projectJson.title} (dotnet ${command})`,
-          cwd,
-          command: 'dotnet',
-          args: [command, ...args]
-    });
+    this.name = `${projectJson.title} (dotnet ${command})`;
+    this.cwd = cwd;
+    this.args = [command, ...args];
   }
 }

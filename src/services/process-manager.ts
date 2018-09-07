@@ -4,8 +4,7 @@ import { EOL } from 'os';
 const chalk = require('chalk');
 
 import { delay, Queue } from './utils';
-import { Play } from '../models/play';
-import { Project } from '../models/project';
+import { Play, Project } from '../models';
 
 const OUTPUT_AUTO_HIDE = 1000 * 10;
 const MAX_ERROR_LENGTH = 500;
@@ -90,6 +89,9 @@ class StatusQueue extends Queue<string>
 }
 
 export class ProcessManager {
+
+  public currentRun: Promise<void>;
+
   private _processNames: string[];
   private _play: Play;
   private _processes: Array<ProcessTracker>;
@@ -123,7 +125,7 @@ export class ProcessManager {
       .filter(project => project.enabled)
       .map((project, index) => this._runProject(project, index));
 
-    return new Promise<void>((resolve, reject) => {
+    return this.currentRun = new Promise<void>((resolve) => {
       this._drawFunc = () => {
         if (this._isCancelled) {
           this._drawFunc = null;
@@ -186,7 +188,7 @@ Output:
     if (project.delay) await delay(project.delay * 1000);
 
     project.currentProcess = this._execFn(`${project.command} ${project.args.join(' ')}`, { cwd: project.cwd });
-
+    
     let displayName = `${project.name} [${project.currentProcess.pid || '?'}]`;
     let tracker: ProcessTracker = {
       name: displayName,

@@ -1,13 +1,12 @@
 #!/usr/bin/env node
 
-import { Question, Separator } from 'inquirer';
+import { Question } from 'inquirer';
 import * as updateNotifier from 'update-notifier';
 import * as minimist from 'minimist';
 import chalk from 'chalk';
-import ansiEscapes from 'ansi-escapes';
+import * as ansiEscapes from 'ansi-escapes';
 
-import {Playbook, Project, Play} from '../';
-import {ProcessManager} from '../services/process-manager';
+import { Playbook, Project, Play, playToString } from '../';
 
 // Check for updates...
 const pkg = require('../../package.json');
@@ -23,7 +22,6 @@ if (args['version'] || args['v']) {
 const app = require('vorpal')();
 
 const pb = new Playbook();
-let processMgr: ProcessManager;
 
 //#region Commands
 
@@ -38,12 +36,12 @@ const autocompletePlays = {
 
 app
   .command('list [playName]', 'Shows available plays currently regsitered.')
-  .alias('ls', 'show')
+  .alias('ls', 'dir', 'show')
   .autocomplete(autocompletePlays)
   .action(function (args: minimist.ParsedArgs) {
     return showPlays.call(this, args)
       .catch((err: Error) => {
-        this.log(chalk.bgRed.white('An error occured while listing...'));
+        this.log(chalk.bgRed.white('An error occured while listing...'), err);
       });
   });
 
@@ -54,20 +52,27 @@ app
   .action(function (args: minimist.ParsedArgs) {
     lastCreatedPlay = null;
     return inputPlayName.call(this, args)
-      .then((playName: string) => {
-        return pb.create(playName, process.cwd()).then(play => lastCreatedPlay = play);
-      })
-      .then(editPlay.bind(this))
-      .then(() => {
-        lastCreatedPlay = null;
-      })
-      .catch((err: Error) => {
-        this.log(chalk.bgRed.white('An error occured while creating! Please try again.'));
-        return deletePlay(lastCreatedPlay).then(() => lastCreatedPlay = null);
+      .then(async (playName: string) => {
+        let existsingPlay = await pb.get(playName);
+        if (existsingPlay) {
+          this.log(`The play '${playName}' already exists! Please try a different name.`);
+          return;
+        }
+
+        return pb.create(playName)
+          .then(play => lastCreatedPlay = play)
+          .then(editPlay.bind(this))
+          .then(() => {
+            lastCreatedPlay = null;
+          })
+          .catch((err: Error) => {
+            this.log(chalk.bgRed.white('An error occured while creating! Please try again.'), err);
+            return pb.delete(lastCreatedPlay).then(() => lastCreatedPlay = null);
+          });
       });
   })
-  .cancel(() => {
-    if (lastCreatedPlay) return deletePlay(lastCreatedPlay).then(() => lastCreatedPlay = null);
+  .cancel(function () {
+    if (lastCreatedPlay) return pb.delete(lastCreatedPlay).then(() => lastCreatedPlay = null);
   });
 
 app
@@ -79,7 +84,7 @@ app
     return selectPlay.call(this, args)
       .then(editPlay.bind(this))
       .catch((err: Error) => {
-        this.log(chalk.bgRed.white('An error occured while editing...'));
+        this.log(chalk.bgRed.white('An error occured while editing...'), err);
       });
   });
 
@@ -92,7 +97,7 @@ app
     return selectPlay.call(this, args)
       .then(deletePlay.bind(this))
       .catch((err: Error) => {
-        this.log(chalk.bgRed.white('An error occured while deleting...'));
+        this.log(chalk.bgRed.white('An error occured while deleting...'), err);
       });
   });
 
@@ -104,16 +109,16 @@ app
     
     return selectPlay.call(this, args)
       .then(play => {
-        processMgr = new ProcessManager(play, pb.lineLimit);
-        return processMgr.execute(text => app.ui.redraw(text));
+        return pb.run(play, text => app.ui.redraw(text));
       })
       .catch((err: Error) => {
-        this.log(chalk.bgRed.white(err.message));
+        this.log(chalk.bgRed.white(err.message), err);
       });
   })
   .cancel(function () {
-    processMgr.cancel();
-    this.log(`Cancelled!`);
+    return pb.cancel().then(() => {
+      this.log(`Cancelled!`);
+    });
   });
 
 app
@@ -153,7 +158,7 @@ function showPlays(args: minimist.ParsedArgs): Promise<void>{
           this.log(`  ${project.name}`);
         });
       }).catch(err => {
-        this.log(chalk.red(`Play "${playName}" not found!`));
+        this.log(chalk.red(`Play "${playName}" not found!`), err);
         return showPlays.call(this, {});
       });
   }
@@ -162,10 +167,10 @@ function showPlays(args: minimist.ParsedArgs): Promise<void>{
     .getAll()
     .then((plays: Play[]) => {
       if (plays.length === 0) {
-        this.log(`No plays found! (Try 'new' to create one)`)
+        this.log(`No plays found! (Try 'new' to create one)`);
       } else {
         plays.forEach(play => {
-          this.log(`  ${play.toString()}`);
+          this.log(`  ${playToString(play)}`);
         });
       }
     });
@@ -210,7 +215,7 @@ function selectPlay(args: minimist.ParsedArgs): Promise<Play> {
           name: answerName,
           message: 'Which play would you like? ',
           choices: plays.map(play => {
-            return {name: play.toString(), value: play.name}
+            return {name: playToString(play), value: play.name}
           })
         }
       ]).then((answers: { [key: string]: string }): Promise<Play> => {
@@ -219,7 +224,7 @@ function selectPlay(args: minimist.ParsedArgs): Promise<Play> {
         if (play) {
           return Promise.resolve(play);
         } else {
-          return Promise.reject<Play>(new Error(`Play "${playName}" not found!`));
+          return Promise.reject(`Play "${playName}" not found!`);
         }
       });
     });
@@ -229,7 +234,7 @@ function editPlay(play: Play): Promise<void> {
   const answerName = 'projects';
   
   return pb
-    .findProjects(play.cwd)
+    .findProjects()
     .then((projects: Project[]) => {
       const defaults = [... new Set(play.projects.map(p => p.name))];
       const choices = projects.map(proj => proj.name);
@@ -264,7 +269,7 @@ function deletePlay(play: Play): Promise<void>{
       {
         type: 'confirm',
         name: answerName,
-        message: `Are you sure you want to delete "${play.toString()}"? `,
+        message: `Are you sure you want to delete "${playToString(play)}"? `,
       }
     ]).then((answers: { [key: string]: boolean }) => {
       let yes = answers[answerName];
