@@ -31,6 +31,7 @@
   "homepage": "https://github.com/JimmyBoh/playbook#readme",
   "devDependencies": {
     "@types/conf": "^1.4.0",
+    "@types/minimist": "^1.2.0",
     "@types/node": "^10.9.4",
     "@types/pify": "^3.0.2",
     "@types/update-notifier": "^2.2.0",
@@ -64,7 +65,8 @@
     "exclude": [
       "dist/**/*.spec.js",
       "dist/**/*.d.ts",
-      "dist/*.js",
+      "dist/index.js",
+      "dist/bin/*",
       "coverage/**",
       "node_modules/**"
     ]

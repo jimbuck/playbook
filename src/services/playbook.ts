@@ -11,7 +11,13 @@ import { ProcessManager } from './process-manager';
 
 const PROJECT_HANDLERS = [nodeHandler, dotnetHandler];
 
+export const PlaybookSettings = {
+  lineLimit: 'lineLimit'
+};
+
 export class Playbook {
+
+  public static availableSettings = [PlaybookSettings.lineLimit];
 
   private _cwd: string;
   private _storage: Conf;
@@ -33,12 +39,16 @@ export class Playbook {
     if (lineLimit) this.lineLimit = lineLimit;
   }
 
+  public get cwd() {
+    return this._cwd;
+  }
+
   public get lineLimit(): number {
     let limit: number;
 
     try {
       limit = parseInt(this._storage.get('lineLimit'), 10);
-      if (isNaN(limit) || limit < 1) limit = 1;
+      if (!limit || isNaN(limit) || limit < 1) limit = 1;
     } catch (err) {
       limit = 1;
     }
@@ -47,21 +57,26 @@ export class Playbook {
   }
 
   public set lineLimit(value: number) {
+    if (!value || isNaN(value) || value < 1) value = 1;
     this._storage.set('lineLimit', value);
   }
 
   public async getAll(): Promise<Play[]> {
-    let projectHash = this._storage.get('plays') || {};
-    return Object.keys(projectHash).map(projName => this._formatPlay(projectHash[projName]));
+    let plays = this._storage.get('plays') || {};
+    return Object.keys(plays).map(playName => {
+      let play = plays[playName];
+      play = this._formatPlay(play, playName);
+
+      return play;
+    });
   }
 
   public async get(playName: string): Promise<Play> {
     if (!this._storage.has(playPath(playName))) {
       return null;
     }
-
     let play = this._storage.get(playPath(playName));
-    return this._formatPlay(play);
+    return this._formatPlay(play, playName);
   }
 
   public async create(name: string): Promise<Play> {
@@ -78,7 +93,9 @@ export class Playbook {
   }
 
   public async save(play: Play): Promise<Play> {
-    this._storage.set(playPath(play.name), play);
+    let p = Object.assign({}, play);
+    delete p.name;
+    this._storage.set(playPath(play.name), p);
     
     return play;
   }
@@ -125,7 +142,8 @@ export class Playbook {
     return Promise.resolve(this._storage.has(playPath(playName)));
   }
 
-  private _formatPlay(play: Play): Play {
+  private _formatPlay(play: Play, name: string = null): Play {
+    if(name && !play.name) play.name = name;
     play.projects = (play.projects || []).map(this._formatProject.bind(this));
     return play;
   }

@@ -1,53 +1,63 @@
 {
 	"plays": {
-		"test": {
-			"name": "test",
-			"cwd": "C:\\Users\\rdabuckj\\Documents\\Projects\\playbook\\test",
+		"alpha": {
 			"projects": [
 				{
-					"name": "node-a (npm test)",
-					"cwd": "node-a",
-					"command": "npm",
-					"args": [
-						"run",
-						"test"
-					],
-					"enabled": true,
-					"delay": 0
-				},
-				{
-					"name": "node-b (npm test)",
-					"cwd": "node-b",
-					"command": "npm",
-					"args": [
-						"run",
-						"test"
-					],
-					"enabled": true,
-					"delay": 0
-				},
-				{
-					"name": "dotnet-b (npm test)",
+					"command": "dotnet",
+					"name": "dotnet-b (dotnet run)",
 					"cwd": "dotnet-b",
-					"command": "npm",
 					"args": [
-						"run",
-						"test"
+						"run"
 					],
-					"enabled": true,
-					"delay": 0
+					"delay": 0,
+					"enabled": true
 				}
 			]
 		},
-		"test1": {
-			"name": "test1",
+		"beta": {
 			"projects": [
+				{
+					"command": "npm",
+					"name": "dotnet-b (npm run test)",
+					"cwd": "dotnet-b",
+					"args": [
+						"run",
+						"test"
+					],
+					"delay": 0,
+					"enabled": true
+				},
 				{
 					"command": "dotnet",
 					"name": "Hello World (dotnet run)",
 					"cwd": "dotnet-a",
 					"args": [
 						"run"
+					],
+					"delay": 0,
+					"enabled": true
+				}
+			]
+		},
+		"zeta": {
+			"projects": [
+				{
+					"command": "node",
+					"name": "node-a (node server.js)",
+					"cwd": "node-a",
+					"args": [
+						"server.js"
+					],
+					"delay": 0,
+					"enabled": true
+				},
+				{
+					"command": "npm",
+					"name": "node-a (npm run test)",
+					"cwd": "node-a",
+					"args": [
+						"run",
+						"test"
 					],
 					"delay": 0,
 					"enabled": true
@@ -61,50 +71,11 @@
 					],
 					"delay": 0,
 					"enabled": true
-				},
-				{
-					"command": "npm",
-					"name": "node-b (node index.js)",
-					"cwd": "node-b",
-					"args": [
-						"run",
-						"test"
-					],
-					"delay": 0,
-					"enabled": true
-				},
-				{
-					"command": "node",
-					"name": "node-a (node server.js)",
-					"cwd": "node-a",
-					"args": [
-						"server.js"
-					],
-					"delay": 0,
-					"enabled": true
-				},
-				{
-					"command": "npm",
-					"name": "node-a (node server.js)",
-					"cwd": "node-a",
-					"args": [
-						"run",
-						"test"
-					],
-					"delay": 0,
-					"enabled": true
-				},
-				{
-					"command": "npm",
-					"name": "dotnet-b (node index.js)",
-					"cwd": "dotnet-b",
-					"args": [
-						"run",
-						"test"
-					],
-					"delay": 0,
-					"enabled": true
-				},
+				}
+			]
+		},
+		"gamma": {
+			"projects": [
 				{
 					"command": "dotnet",
 					"name": "dotnet-b (dotnet run)",
@@ -114,8 +85,41 @@
 					],
 					"delay": 0,
 					"enabled": true
+				},
+				{
+					"command": "dotnet",
+					"name": "Hello World (dotnet run)",
+					"cwd": "dotnet-a",
+					"args": [
+						"run"
+					],
+					"delay": 0,
+					"enabled": true
+				},
+				{
+					"command": "npm",
+					"name": "node-a (npm run test)",
+					"cwd": "node-a",
+					"args": [
+						"run",
+						"test"
+					],
+					"delay": 0,
+					"enabled": true
+				},
+				{
+					"command": "npm",
+					"name": "node-b (npm run test)",
+					"cwd": "node-b",
+					"args": [
+						"run",
+						"test"
+					],
+					"delay": 0,
+					"enabled": true
 				}
 			]
 		}
-	}
+	},
+	"lineLimit": 5
 }

@@ -77,7 +77,7 @@ class NpmProject implements Project {
   public currentProcess?: ChildProcess;
 
   constructor(cwd: string, packageJson: any, command: string, args: string[] = []) {
-    this.name = `${packageJson.name} (node ${packageJson.main})`;
+    this.name = `${packageJson.name} (npm run ${command})`;
     this.cwd = cwd;
     this.args = ['run', command, ...args];
   }
