@@ -3,11 +3,33 @@
 		"alpha": {
 			"projects": [
 				{
-					"command": "dotnet",
-					"name": "dotnet-b (dotnet run)",
+					"command": "npm",
+					"name": "dotnet-b (npm run test)",
 					"cwd": "dotnet-b",
 					"args": [
-						"run"
+						"run",
+						"test"
+					],
+					"delay": 0,
+					"enabled": true
+				},
+				{
+					"command": "node",
+					"name": "node-a (node server.js)",
+					"cwd": "node-a",
+					"args": [
+						" --inspect",
+						"server.js"
+					],
+					"delay": 0,
+					"enabled": true
+				},
+				{
+					"command": "node",
+					"name": "node-b (node index.js)",
+					"cwd": "node-b",
+					"args": [
+						"index.js"
 					],
 					"delay": 0,
 					"enabled": true
