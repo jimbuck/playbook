@@ -17,7 +17,6 @@ updateNotifier({ pkg }).notify();
 
 let args = minimist(process.argv);
 if (args['version'] || args['v']) {
-  console.log(args);
   console.log(pkg.version);
   process.exit(0);
 }
