@@ -6,9 +6,11 @@ const chalk = require('chalk');
 import { delay, Queue } from './utils';
 import { Play, Project } from '../models';
 
-const OUTPUT_AUTO_HIDE = 1000 * 10;
-const MAX_ERROR_LENGTH = 500;
 const INVALID_CHAR_REGEX = /\r?\n/gi;
+const ERROR_REGEX = /\b(err|error|fail|failure)\b/gi;
+const WARN_REGEX = /\b(warn|warning)\b/gi;
+
+const TICK_INTERVAL = 500;
 
 const FG_COLORS = [
   chalk.magenta,
@@ -40,7 +42,7 @@ function getBgColor(i: number): ((message: any) => string) {
 const SPINNER_CHARS = '▁▃▄▅▆▇█▇▆▅▄▃';
 
 function getSpinnerChar(p: ProcessTracker): string {
-  return p.color(SPINNER_CHARS[p.step % SPINNER_CHARS.length]);
+  return p.color(SPINNER_CHARS[p.buffer.step % SPINNER_CHARS.length]);
 }
 
 const GRAY_LINE = chalk.gray('_');
@@ -52,21 +54,28 @@ const RED_BLOCK = chalk.red('█');
 interface ProcessTracker {
   name: string;
   process: ChildProcess;
-  step: number;
   buffer: StatusQueue;
   color?: (message: any) => string;
   bgColor?: (message: any) => string;
   lastError?: string;
+  done?: boolean;
 }
 
 class StatusQueue extends Queue<string>
 {
+  public step: number = 0;
+
   constructor() {
     super(200);
 
     for (let i = 0; i < this.limit; i++) {
       this.enqueue(GRAY_LINE);
     }
+  }
+
+  public enqueue(char: string): void {
+    this.step++;
+    super.enqueue(char);
   }
 
   public toString(): string;
@@ -121,14 +130,25 @@ export class ProcessManager {
     this._drawThrottle = throttle;
 
     // Start each project...
-    this._play.projects
+    let allRunning = Promise.all(this._play.projects
       .filter(project => project.enabled)
-      .map((project, index) => this._runProject(project, index));
+      .map((project, index) => this._runProject(project, index)));
 
+    let tickInterval;
+    allRunning.then(procs => {
+      tickInterval = setInterval(() => {
+        procs.forEach(proc => {
+          if (!proc.done) proc.buffer.enqueue(GRAY_LINE);
+        });
+        this._redraw();
+      }, TICK_INTERVAL);
+    });
+    
     return this.currentRun = new Promise<void>((resolve) => {
       this._drawFunc = () => {
         if (this._isCancelled) {
           this._drawFunc = null;
+          tickInterval && clearInterval(tickInterval);
           this._processes.forEach(proc => {
             // Force each process to stop.
             proc.process.kill();
@@ -141,7 +161,6 @@ export class ProcessManager {
 ------------------------------------
 `;
 
-        let projectNum = 0;
         const consoleWidth = ((<WriteStream>process.stdout).columns || 80) - 2;
         let projectList = this._processes.map(proc => {
           let paddingSpaces = (new Array(Math.max(0, this._maxNameLength - proc.name.length))).fill(' ').join('');
@@ -163,7 +182,6 @@ export class ProcessManager {
 Output:
 ------------------------------------
 `;
-        let now = Date.now();
         this._processes.forEach(proc => {
           let output = this._lastOutput[proc.name];
           if (output) {
@@ -184,7 +202,7 @@ Output:
     this._isCancelled = true;
   }
 
-  private async _runProject(project: Project, index: number): Promise<void> {    
+  private async _runProject(project: Project, index: number): Promise<ProcessTracker> {
     if (project.delay) await delay(project.delay * 1000);
 
     project.currentProcess = this._execFn(`${project.command} ${project.args.join(' ')}`, { cwd: project.cwd });
@@ -193,7 +211,6 @@ Output:
     let tracker: ProcessTracker = {
       name: displayName,
       process: project.currentProcess,
-      step: 0,
       buffer: new StatusQueue(),
       color: getFgColor(index),
       bgColor: getBgColor(index)
@@ -201,28 +218,32 @@ Output:
     this._lastOutput[tracker.name] = new TextBuffer(this._lineLimit);
 
     tracker.process.stdout.on('data', (text: string) => {
-      tracker.step++;
-      tracker.buffer.enqueue(GREEN_BLOCK);
+      if (ERROR_REGEX.test(text)) {
+        tracker.buffer.enqueue(RED_BLOCK);
+      } else if (WARN_REGEX.test(text)) {
+        tracker.buffer.enqueue(YELLOW_BLOCK);
+      } else {
+        tracker.buffer.enqueue(GREEN_BLOCK);
+      }
       this._lastOutput[tracker.name].push(text);
       this._redraw();
     });
 
     tracker.process.stderr.on('data', (text: string) => {
-      tracker.step++;
-      tracker.buffer.enqueue(YELLOW_BLOCK);
+      tracker.buffer.enqueue(RED_BLOCK);
       this._lastOutput[tracker.name].push(text);
       this._redraw();
     });
 
     tracker.process.on('error', (code: number, signal: string) => {
-      tracker.step++;
-      tracker.buffer.enqueue(RED_BLOCK);
+      tracker.done = true;
+      tracker.buffer.enqueue(GRAY_BLOCK);
       this._lastOutput[tracker.name].push(`Process Error: ${code} (${signal})`);
       this._redraw();
     });
 
     tracker.process.on('exit', (code: number, signal: string) => {
-      tracker.step++;
+      tracker.done = true;
       tracker.buffer.enqueue(GRAY_BLOCK);
       this._lastOutput[tracker.name].push(`Process Exit: ${code} (${signal})`);
       this._redraw();
@@ -232,6 +253,8 @@ Output:
     this._processNames.push(displayName);
     this._maxNameLength = Math.max(this._maxNameLength, displayName.length)
     this._processes.push(tracker);
+
+    return tracker;
   }
 
   private _redraw(): void {
