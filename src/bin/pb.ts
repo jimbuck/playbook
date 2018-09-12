@@ -284,8 +284,11 @@ function editPlay(play: Play): Promise<void> {
   return pb
     .findProjects()
     .then((projects: Project[]) => {
+      console.log(`Projects Found: ${projects.length}`);
       const defaults = [... new Set(play.projects.map(p => p.name))];
       const choices = sortStrings(projects.map(proj => proj.name));
+      console.log(`Defaults Found: ${defaults.length}`);
+      console.log(`Choices Found: ${choices.length}`);
 
       return this
         .prompt(<Question[]>[

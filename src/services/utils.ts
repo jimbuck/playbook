@@ -1,6 +1,6 @@
-
 import * as path from 'path';
 import * as fs from 'fs-jetpack';
+import * as minimatch from 'minimatch';
 
 export type OneOrMany<T> = T | Array<T>;
 
@@ -58,11 +58,11 @@ export class FileSystemIterator {
     this.ignoreFolders = this.ignoreFolders || [];
   }
 
-  public async scan(dir: string, handler: (path: string) => Promise<void>): Promise<void> {
+  public async scan(dir: string, handler: (path: string, filename: string) => Promise<void>): Promise<void> {
     await this.map<void>(dir, handler);
   }
 
-  public async map<T>(dir: string, handler: (path: string) => Promise<OneOrMany<T>>): Promise<Array<T>> {
+  public async map<T>(dir: string, handler: (path: string, filename: string) => Promise<OneOrMany<T>>): Promise<Array<T>> {
     const paths: string[] = await fs.listAsync(dir);
     
     return await parallelMap(paths, async (filename) => {
@@ -73,9 +73,9 @@ export class FileSystemIterator {
         return [];
       }
 
-      if (this.targetFiles.some(targetFile => filename === targetFile)) {
+      if (this.targetFiles.some(targetGlob => minimatch(filename, targetGlob))) {
         // It matches a target file! (handle it and stop here)...
-        return handler(fullPath);
+        return handler(fullPath, filename);
       }
 
       try {

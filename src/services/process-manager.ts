@@ -203,7 +203,7 @@ Output:
   }
 
   private async _runProject(project: Project, index: number): Promise<ProcessTracker> {
-    if (project.delay) await delay(project.delay * 1000);
+    if (project.delay) await delay(project.delay);
 
     project.currentProcess = this._execFn(`${project.command} ${project.args.join(' ')}`, { cwd: project.cwd });
     

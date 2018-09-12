@@ -1,21 +1,36 @@
 import { basename, dirname } from 'path';
 import { ChildProcess } from 'child_process';
+import { parseString } from 'xml2js';
 
 import { ProjectHandler, Project } from '../models';
 
+function parseXml(xml): Promise<any> {
+  return new Promise((resolve, reject) => {
+    parseString(xml, (err, result) => {
+      if (err) reject(err);
+      else resolve(result);
+    });
+  });
+}
+
 export const dotnetHandler: ProjectHandler = {
   name: 'dotnet',
-  desc: 'Apps powered by .NET Core CLI.',
-  files: ['project.json'], // TODO: Add support for csproj structure...
-  extract: (path: string, content: string) => {
+  desc: 'Apps powered by .NET Core CLI (csproj).',
+  files: ['*.csproj'],
+  extract: async (path: string, content: string) => {
     try {
       let cwd = dirname(path);
-      let projectJson = JSON.parse(content);
-      projectJson.title = projectJson.title || basename(cwd);
+      let csProj = await parseXml(content);
 
-      let projects: Project[] = [new DotnetProject(cwd, projectJson, 'run')];
+      // Check if it is .NET Core...
+      if (csProj.Project.$.Sdk !== 'Microsoft.NET.Sdk' && csProj.Project.$.Sdk !== 'Microsoft.NET.Sdk.Web') return [];
 
-      return projects;
+      // Make sure it is not a class library...
+      if (csProj.Project.PropertyGroup[0].OutputType[0] !== 'Exe') return [];
+
+      let title = csProj.Project.PropertyGroup[0].AssemblyName[0] || basename(cwd);
+
+      return [new DotnetCoreProject(cwd, title, 'run')];
     } catch (ex) {
       //console.error(ex);
       return [];
@@ -23,7 +38,7 @@ export const dotnetHandler: ProjectHandler = {
   }
 };
 
-class DotnetProject implements Project
+class DotnetCoreProject implements Project
 {
   public name: string;
   public cwd: string;
@@ -33,8 +48,8 @@ class DotnetProject implements Project
   public delay?: number;
   public currentProcess?: ChildProcess;
   
-  constructor(cwd: string, projectJson: any, command: string, args: string[] = []) {
-    this.name = `${projectJson.title} (dotnet ${command})`;
+  constructor(cwd: string, projectName: string, command: string, args: string[] = []) {
+    this.name = `${projectName}.csproj (dotnet ${command})`;
     this.cwd = cwd;
     this.args = [command, ...args];
   }

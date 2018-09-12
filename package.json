@@ -31,10 +31,12 @@
   "homepage": "https://github.com/JimmyBoh/playbook#readme",
   "devDependencies": {
     "@types/conf": "^1.4.0",
+    "@types/minimatch": "^3.0.3",
     "@types/minimist": "^1.2.0",
     "@types/node": "^10.9.4",
     "@types/pify": "^3.0.2",
     "@types/update-notifier": "^2.2.0",
+    "@types/xml2js": "^0.4.3",
     "ava": "^0.25.0",
     "concurrently": "^4.0.1",
     "coveralls": "^3.0.2",
@@ -47,8 +49,10 @@
     "chalk": "^2.4.1",
     "conf": "^2.0.0",
     "fs-jetpack": "^2.1.0",
+    "minimatch": "^3.0.4",
     "update-notifier": "^2.5.0",
-    "vorpal": "^1.12.0"
+    "vorpal": "^1.12.0",
+    "xml2js": "^0.4.19"
   },
   "ava": {
     "files": [

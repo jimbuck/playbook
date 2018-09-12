@@ -36,7 +36,7 @@ export interface ProjectHandler
   /**
    * Checks whether a found project matches this handler.
    */
-  extract(path: string, content: string): Project[]; 
+  extract(path: string, content: string): Array<Project> | Promise<Array<Project>>;
 }
 
 export function playToString(play: Play): string {

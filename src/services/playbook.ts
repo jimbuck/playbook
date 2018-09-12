@@ -1,15 +1,13 @@
 import * as path from 'path';
 import * as fs from 'fs-jetpack';
+import * as minimatch from 'minimatch';
 import Conf = require('conf');
 
 import {flatten, FileSystemIterator} from './utils';
 import { Play, Project } from '../models';
 
-import { nodeHandler } from '../handlers/node';
-import { dotnetHandler } from '../handlers/dotnet';
+import { availableHandlers } from '../handlers';
 import { ProcessManager } from './process-manager';
-
-const PROJECT_HANDLERS = [nodeHandler, dotnetHandler];
 
 export const PlaybookSettings = {
   lineLimit: 'lineLimit'
@@ -34,7 +32,7 @@ export class Playbook {
       projectName: 'playbook',
       cwd: this._cwd
     });
-    let acceptedFiles = [...new Set<string>(flatten<string>(PROJECT_HANDLERS.map(ph => ph.files)))];
+    let acceptedFiles = [...new Set<string>(flatten<string>(availableHandlers.map(ph => ph.files)))];
     this._fsIterator = new FileSystemIterator(acceptedFiles, ['node_modules', 'bower_components', 'typings', 'artifacts', 'bin', 'obj', 'packages']);
     if (lineLimit) this.lineLimit = lineLimit;
   }
@@ -106,15 +104,20 @@ export class Playbook {
 
   public async findProjects(cwd?: string): Promise<Project[]> {
     cwd = cwd || this._cwd;
-    const results = await this._fsIterator.map<Project>(cwd, async (projectPath: string) => {
+    const results = await this._fsIterator.map<Project>(cwd, async (projectPath: string, filename: string) => {
       const content: string = await fs.readAsync(projectPath);
 
-      return flatten(PROJECT_HANDLERS.map(projectHandler => {
-        if (projectHandler.files.some(file => projectPath.endsWith(file))) {
-          return projectHandler.extract(projectPath, content).map(this._formatProject.bind(this));
+      let x = await Promise.all(availableHandlers.map(async (projectHandler) => {
+        
+        if (projectHandler.files.some(fileGlob => minimatch(filename, fileGlob))) {
+          let projs = await projectHandler.extract(projectPath, content);
+          return projs.map(this._formatProject.bind(this)) as Array<Project>;
         }
+
         return [];
       }));
+
+      return flatten(x);
     });
 
     return results;
