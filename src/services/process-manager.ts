@@ -143,7 +143,18 @@ export class ProcessManager {
         this._redraw();
       }, TICK_INTERVAL);
     });
-    
+
+    const stdin = process.openStdin();
+    const PREV_RAW_VALUE = process.stdin.isRaw || false;
+    process.stdin.setRawMode(true);
+
+    stdin.on('keypress', (chunk, key) => {
+      if (key.name === 'q') {
+        process.stdin.setRawMode(PREV_RAW_VALUE);
+        this.cancel();
+      }
+    });
+
     return this.currentRun = new Promise<void>((resolve) => {
       this._drawFunc = () => {
         if (this._isCancelled) {
@@ -189,9 +200,9 @@ Output:
           }
         });
 
-        drawString += `
-------------------------------------
-`;
+        drawString += 
+`------------------------------------
+Press 'Q' to exit...`;
 
         drawFn(drawString);
       };
@@ -236,9 +247,8 @@ Output:
     });
 
     tracker.process.on('error', (code: number, signal: string) => {
-      tracker.done = true;
       tracker.buffer.enqueue(GRAY_BLOCK);
-      this._lastOutput[tracker.name].push(`Process Error: ${code} (${signal})`);
+      this._lastOutput[tracker.name].push(`Process Error: Signal = ${signal} Code = ${code}`);
       this._redraw();
     });
 

@@ -110,8 +110,10 @@ app
   .action(function (args: ParsedArgs) {
     
     return selectPlay.call(this, args)
-      .then(play => {
-        return pb.run(play, text => app.ui.redraw(text));
+      .then(async (play) => {
+        this.log(ansiEscapes.clearScreen);
+        await pb.run(play, text => app.ui.redraw(text));
+        this.log(ansiEscapes.clearScreen);
       })
       .catch((err: Error) => {
         this.log(chalk.bgRed.white(err.message), err);
@@ -284,11 +286,11 @@ function editPlay(play: Play): Promise<void> {
   return pb
     .findProjects()
     .then((projects: Project[]) => {
-      console.log(`Projects Found: ${projects.length}`);
+      // console.log(`Projects Found: ${projects.length}`);
       const defaults = [... new Set(play.projects.map(p => p.name))];
       const choices = sortStrings(projects.map(proj => proj.name));
-      console.log(`Defaults Found: ${defaults.length}`);
-      console.log(`Choices Found: ${choices.length}`);
+      // console.log(`Defaults Found: ${defaults.length}`);
+      // console.log(`Choices Found: ${choices.length}`);
 
       return this
         .prompt(<Question[]>[
