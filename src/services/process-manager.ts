@@ -144,16 +144,18 @@ export class ProcessManager {
       }, TICK_INTERVAL);
     });
 
-    const stdin = process.openStdin();
+    process.openStdin();
     const PREV_RAW_VALUE = process.stdin.isRaw || false;
     process.stdin.setRawMode(true);
 
-    stdin.on('keypress', (chunk, key) => {
+    const keypressHandler = (chunk, key) => {
       if (key.name === 'q') {
+        process.stdin.removeListener('keypress', keypressHandler);
         process.stdin.setRawMode(PREV_RAW_VALUE);
         this.cancel();
       }
-    });
+    };
+    process.stdin.on('keypress', keypressHandler);
 
     return this.currentRun = new Promise<void>((resolve) => {
       this._drawFunc = () => {
