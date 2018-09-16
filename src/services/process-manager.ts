@@ -6,7 +6,8 @@ const chalk = require('chalk');
 import { delay, Queue } from './utils';
 import { Play, Project } from '../models';
 
-const INVALID_CHAR_REGEX = /\r?\n/gi;
+const EMPTY_STRING = '';
+const NEWLINE_REGEX = /\r?\n/gi;
 const ERROR_REGEX = /\b(err|error|fail|failure)\b/gi;
 const WARN_REGEX = /\b(warn|warning)\b/gi;
 
@@ -158,14 +159,16 @@ export class ProcessManager {
     process.stdin.on('keypress', keypressHandler);
 
     return this.currentRun = new Promise<void>((resolve) => {
-      this._drawFunc = () => {
+      this._drawFunc = async () => {
         if (this._isCancelled) {
           this._drawFunc = null;
           tickInterval && clearInterval(tickInterval);
-          this._processes.forEach(proc => {
+          for(let proc of this._processes) {
             // Force each process to stop.
             proc.process.kill();
-          });
+            await delay(500);
+            proc.process.kill('SIGKILL');
+          }
           resolve();
           return;
         }
@@ -286,16 +289,15 @@ class TextBuffer {
   }
 
   public push(text: string): void {
-    text = this._scrubOutput(text);
-    this._text.enqueue(text);
+    let lines = (text || EMPTY_STRING).split(NEWLINE_REGEX);
+    for (let line of lines) {
+      line = line.trimRight();
+      if (line.length > 0) this._text.enqueue(line);
+    }
   }
 
   public toString(consoleWidth: number = 80): string {
     return this._text.toArray().map(line => this._shortenOutput(line, consoleWidth)).join(EOL);
-  }
-
-  private _scrubOutput(text: string): string {
-    return (text || '').replace(INVALID_CHAR_REGEX, '¶');
   }
 
   private _shortenOutput(text: string, consoleWidth: number = 80): string {

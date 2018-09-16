@@ -130,7 +130,10 @@ export class Playbook {
 
     this._processMgr = new ProcessManager(play, this.lineLimit);
 
-    return this._processMgr.execute(drawFn);
+    return this._processMgr.execute(drawFn).then(() => this._processMgr = null, (err) => {
+      this._processMgr = null;
+      throw err;
+    });
   }
 
   public async cancel(): Promise<void> {
