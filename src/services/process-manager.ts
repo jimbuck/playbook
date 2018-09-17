@@ -53,6 +53,7 @@ const GRAY_BLOCK = chalk.gray('█');
 const GREEN_BLOCK = chalk.green('█');
 const YELLOW_BLOCK = chalk.yellow('█');
 const RED_BLOCK = chalk.red('█');
+const BOX_LINE_HORIZONTAL = '─';
 
 interface ProcessTracker {
   name: string;
@@ -149,7 +150,7 @@ export class ProcessManager {
       }, TICK_INTERVAL);
     });
 
-    process.openStdin();
+    process.stdin.resume();
     const PREV_RAW_VALUE = process.stdin.isRaw || false;
     process.stdin.setRawMode(true);
 
@@ -161,6 +162,7 @@ export class ProcessManager {
         } else if (this._isCancelled) {
           process.stdin.removeListener('keypress', keypressHandler);
           process.stdin.setRawMode(PREV_RAW_VALUE);
+          process.stdin.pause();
 
           this._drawFunc = null;
           tickInterval && clearInterval(tickInterval);
@@ -196,7 +198,7 @@ export class ProcessManager {
         const processOutputHeight = Math.floor((consoleHeight - (this._processes.length + 6)) / this._processes.length);
 
         let drawString = `Projects:
-${repeat('-', consoleWidth)}
+${repeat(BOX_LINE_HORIZONTAL, consoleWidth)}
 `;
 
         let projectList = this._processes.map(proc => {
@@ -218,7 +220,7 @@ ${repeat('-', consoleWidth)}
         if (processOutputHeight > 0) {
           drawString += `
 Output:
-${repeat('-', consoleWidth)}
+${repeat(BOX_LINE_HORIZONTAL, consoleWidth)}
 `;
           this._processes.forEach(proc => {
             let output = this._lastOutput[proc.name];
@@ -231,7 +233,7 @@ ${repeat('-', consoleWidth)}
         }
 
         drawString += `
-${repeat('-', consoleWidth)}
+${repeat(BOX_LINE_HORIZONTAL, consoleWidth)}
 Press 'Q' ${this._isCancelled ? 'again ' : EMPTY_STRING}to ${this._isCancelled ? 'exit' : 'stop'}...`;
 
         drawFn(drawString);
@@ -258,7 +260,7 @@ Press 'Q' ${this._isCancelled ? 'again ' : EMPTY_STRING}to ${this._isCancelled ?
       done: false,
       terminating: false
     };
-    this._lastOutput[tracker.name] = new TextBuffer('|');
+    this._lastOutput[tracker.name] = new TextBuffer('.');
 
     tracker.process.stdout.on('data', (text: string) => {
       if (ERROR_REGEX.test(text)) {
