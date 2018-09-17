@@ -125,42 +125,36 @@ app
     });
   });
 
-app
-  .command('set [key] [value]', 'Set a configuration value.')
-  .autocomplete(Playbook.availableSettings)
-  .action(function (args: ParsedArgs, cb: () => void) {
-    const key = args['key'];
-    let value = args['value'];
+// app
+//   .command('set [key] [value]', 'Set a configuration value.')
+//   .autocomplete(Playbook.availableSettings)
+//   .action(function (args: ParsedArgs, cb: () => void) {
+//     const key = args['key'];
+//     let value = args['value'];
 
-    switch (key) {
-      case PlaybookSettings.lineLimit:
-        pb.lineLimit = parseInt(value, 10);
-        break;
-      default:
-        this.log(`Unable to set unknown configuration field '${key}'!`);
-        break;
-    }
+//     switch (key) {
+//       default:
+//         this.log(`Unable to set unknown configuration field '${key}'!`);
+//         break;
+//     }
 
-    cb();
-  });
+//     cb();
+//   });
 
-app
-  .command('get [key]', 'Get a configuration value.')
-  .autocomplete(Playbook.availableSettings)
-  .action(function (args: ParsedArgs, cb: () => void) {
-    const key = args['key'];
+// app
+//   .command('get [key]', 'Get a configuration value.')
+//   .autocomplete(Playbook.availableSettings)
+//   .action(function (args: ParsedArgs, cb: () => void) {
+//     const key = args['key'];
 
-    switch (key) {
-      case PlaybookSettings.lineLimit:
-        this.log(pb.lineLimit);
-        break;
-      default:
-        this.log(`Unable to get unknown configuration field '${key}'!`);
-        break;
-    }
+//     switch (key) {
+//       default:
+//         this.log(`Unable to get unknown configuration field '${key}'!`);
+//         break;
+//     }
 
-    cb();
-  });
+//     cb();
+//   });
 
 app
   .command('cwd', 'Prints the current working directory.')

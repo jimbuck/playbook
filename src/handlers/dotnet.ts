@@ -25,10 +25,13 @@ export const dotnetHandler: ProjectHandler = {
       // Check if it is .NET Core...
       if (csProj.Project.$.Sdk !== 'Microsoft.NET.Sdk' && csProj.Project.$.Sdk !== 'Microsoft.NET.Sdk.Web') return [];
 
+      let title = csProj.Project.PropertyGroup[0].AssemblyName[0] as string || basename(cwd);
+
+      // If it is a test project then we can watch those...
+      if (title.toLowerCase().endsWith('tests')) return [new DotnetCoreProject(cwd, title, 'watch', ['test'])];
+
       // Make sure it is not a class library...
       if (csProj.Project.PropertyGroup[0].OutputType[0] !== 'Exe') return [];
-
-      let title = csProj.Project.PropertyGroup[0].AssemblyName[0] || basename(cwd);
 
       return [new DotnetCoreProject(cwd, title, 'run')];
     } catch (ex) {
@@ -49,7 +52,7 @@ class DotnetCoreProject implements Project
   public currentProcess?: ChildProcess;
   
   constructor(cwd: string, projectName: string, command: string, args: string[] = []) {
-    this.name = `${projectName}.csproj (dotnet ${command})`;
+    this.name = `${projectName} (dotnet ${command})`;
     this.cwd = cwd;
     this.args = [command, ...args];
   }

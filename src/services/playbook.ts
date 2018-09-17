@@ -10,21 +10,19 @@ import { availableHandlers } from '../handlers';
 import { ProcessManager } from './process-manager';
 
 export const PlaybookSettings = {
-  lineLimit: 'lineLimit'
 };
 
 export class Playbook {
 
-  public static availableSettings = [PlaybookSettings.lineLimit];
+  public static availableSettings = [];
 
   private _cwd: string;
   private _storage: Conf;
   private _fsIterator: FileSystemIterator;
   private _processMgr: ProcessManager;
 
-  constructor({ cwd, lineLimit }: {
-    cwd?: string,
-    lineLimit?: number
+  constructor({ cwd }: {
+    cwd?: string
   } = {}) {
     this._cwd = cwd || fs.cwd();
     this._storage = new Conf({
@@ -34,29 +32,10 @@ export class Playbook {
     });
     let acceptedFiles = [...new Set<string>(flatten<string>(availableHandlers.map(ph => ph.files)))];
     this._fsIterator = new FileSystemIterator(acceptedFiles, ['node_modules', 'bower_components', 'typings', 'artifacts', 'bin', 'obj', 'packages']);
-    if (lineLimit) this.lineLimit = lineLimit;
   }
 
   public get cwd() {
     return this._cwd;
-  }
-
-  public get lineLimit(): number {
-    let limit: number;
-
-    try {
-      limit = parseInt(this._storage.get('lineLimit'), 10);
-      if (!limit || isNaN(limit) || limit < 1) limit = 1;
-    } catch (err) {
-      limit = 1;
-    }
-
-    return limit;
-  }
-
-  public set lineLimit(value: number) {
-    if (!value || isNaN(value) || value < 1) value = 1;
-    this._storage.set('lineLimit', value);
   }
 
   public async getAll(): Promise<Play[]> {
@@ -128,7 +107,7 @@ export class Playbook {
 
     if (typeof play === 'string') play = await this.get(play);
 
-    this._processMgr = new ProcessManager(play, this.lineLimit);
+    this._processMgr = new ProcessManager(play);
 
     return this._processMgr.execute(drawFn).then(() => this._processMgr = null, (err) => {
       this._processMgr = null;

@@ -163,6 +163,15 @@ export class Queue<T>
     return this._array.shift();
   }
 
+  /**
+   * Returns a section of an array.
+   * @param start The beginning of the specified portion of the array.
+   * @param end The end of the specified portion of the array.
+   */
+  public slice(start?: number, end?: number): Array<T> {
+    return this._array.slice(start, end);
+  }
+
   public toArray(): Array<T> {
     return this._array.slice();
   }

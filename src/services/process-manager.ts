@@ -2,6 +2,7 @@ import { ChildProcess, exec } from 'child_process';
 import { WriteStream } from 'tty';
 import { EOL } from 'os';
 const chalk = require('chalk');
+const stripAnsi = require('strip-ansi');
 
 import { delay, Queue } from './utils';
 import { Play, Project } from '../models';
@@ -33,20 +34,21 @@ const BG_COLORS = [
 
 let colorOffset = 0;
 function getFgColor(i: number): ((message: any) => string) {
-  return FG_COLORS[(i+colorOffset) % FG_COLORS.length];
+  return FG_COLORS[(i + colorOffset) % FG_COLORS.length];
 }
 
 function getBgColor(i: number): ((message: any) => string) {
-  return BG_COLORS[(i+colorOffset) % FG_COLORS.length];
+  return BG_COLORS[(i + colorOffset) % FG_COLORS.length];
 }
 
 const SPINNER_CHARS = '▁▃▄▅▆▇█▇▆▅▄▃';
 
 function getSpinnerChar(p: ProcessTracker): string {
+  if (p.done) return p.color(SPINNER_CHARS[0]);
   return p.color(SPINNER_CHARS[p.buffer.step % SPINNER_CHARS.length]);
 }
 
-const GRAY_LINE = chalk.gray('_');
+const GRAY_LINE = chalk.gray('▁');
 const GRAY_BLOCK = chalk.gray('█');
 const GREEN_BLOCK = chalk.green('█');
 const YELLOW_BLOCK = chalk.yellow('█');
@@ -59,7 +61,8 @@ interface ProcessTracker {
   color?: (message: any) => string;
   bgColor?: (message: any) => string;
   lastError?: string;
-  done?: boolean;
+  done: boolean;
+  terminating: boolean;
 }
 
 class StatusQueue extends Queue<string>
@@ -113,16 +116,15 @@ export class ProcessManager {
   private _drawThrottle: number;
 
   private _lastOutput: { [key: string]: TextBuffer; } = {};
-  private _lineLimit: number;
 
+  private _isCancelling: boolean = false;
   private _isCancelled: boolean = false;
   private _execFn: any;
 
-  constructor(play: Play, lineLimit: number = 1, execFn: any = exec) {
+  constructor(play: Play, execFn: any = exec) {
     this._play = play;
     this._processNames = [];
     this._processes = [];
-    this._lineLimit = lineLimit;
     this._execFn = execFn;
   }
 
@@ -138,9 +140,11 @@ export class ProcessManager {
     let tickInterval;
     allRunning.then(procs => {
       tickInterval = setInterval(() => {
-        procs.forEach(proc => {
-          if (!proc.done) proc.buffer.enqueue(GRAY_LINE);
-        });
+        if (!this._isCancelled) {
+          procs.forEach(proc => {
+            if (!proc.done) proc.buffer.enqueue(GRAY_LINE);
+          });
+        }
         this._redraw();
       }, TICK_INTERVAL);
     });
@@ -149,35 +153,52 @@ export class ProcessManager {
     const PREV_RAW_VALUE = process.stdin.isRaw || false;
     process.stdin.setRawMode(true);
 
+    let resolveRun: () => void;
     const keypressHandler = (chunk, key) => {
       if (key.name === 'q') {
-        process.stdin.removeListener('keypress', keypressHandler);
-        process.stdin.setRawMode(PREV_RAW_VALUE);
-        this.cancel();
+        if (!this._isCancelling && !this._isCancelled) {
+          this.cancel();
+        } else if (this._isCancelled) {
+          process.stdin.removeListener('keypress', keypressHandler);
+          process.stdin.setRawMode(PREV_RAW_VALUE);
+
+          this._drawFunc = null;
+          tickInterval && clearInterval(tickInterval);
+
+          resolveRun();
+        }
       }
     };
     process.stdin.on('keypress', keypressHandler);
 
     return this.currentRun = new Promise<void>((resolve) => {
+      resolveRun = resolve;
       this._drawFunc = async () => {
-        if (this._isCancelled) {
-          this._drawFunc = null;
-          tickInterval && clearInterval(tickInterval);
-          for(let proc of this._processes) {
-            // Force each process to stop.
-            proc.process.kill();
-            await delay(500);
-            proc.process.kill('SIGKILL');
+        if (this._isCancelling) {
+          for (let proc of this._processes) {
+            if (!proc.terminating) {
+              // Force each process to stop.
+              proc.terminating = true;
+              proc.process.kill('SIGINT');
+              await delay(500);
+              proc.process.kill();
+            }
           }
-          resolve();
-          return;
         }
 
+        let allDone = this._processes.every(p => p.done);
+        if (allDone) {
+          this._isCancelled = true;
+        }
+
+        const consoleWidth = ((<WriteStream>process.stdout).columns || 80);
+        const consoleHeight = ((<WriteStream>process.stdout).rows || 22) - 2;
+        const processOutputHeight = Math.floor((consoleHeight - (this._processes.length + 6)) / this._processes.length);
+
         let drawString = `Projects:
-------------------------------------
+${repeat('-', consoleWidth)}
 `;
 
-        const consoleWidth = ((<WriteStream>process.stdout).columns || 80) - 2;
         let projectList = this._processes.map(proc => {
           let paddingSpaces = (new Array(Math.max(0, this._maxNameLength - proc.name.length))).fill(' ').join('');
           let titleLength = paddingSpaces.length + proc.name.length + 1; // Plus one for the colon...
@@ -194,20 +215,24 @@ export class ProcessManager {
 
         drawString += projectList;
 
-        drawString += `
+        if (processOutputHeight > 0) {
+          drawString += `
 Output:
-------------------------------------
+${repeat('-', consoleWidth)}
 `;
-        this._processes.forEach(proc => {
-          let output = this._lastOutput[proc.name];
-          if (output) {
-            drawString += proc.color(output.toString(consoleWidth)) + EOL;
-          }
-        });
+          this._processes.forEach(proc => {
+            let output = this._lastOutput[proc.name];
+            if (output) {
+              drawString += proc.color(output.toString(consoleWidth, processOutputHeight)) + EOL;
+            } else {
+              drawString += proc.color('...') + EOL;
+            }
+          });
+        }
 
-        drawString += 
-`------------------------------------
-Press 'Q' to exit...`;
+        drawString += `
+${repeat('-', consoleWidth)}
+Press 'Q' ${this._isCancelled ? 'again ' : EMPTY_STRING}to ${this._isCancelled ? 'exit' : 'stop'}...`;
 
         drawFn(drawString);
       };
@@ -215,23 +240,25 @@ Press 'Q' to exit...`;
   }
 
   public cancel(): void {
-    this._isCancelled = true;
+    this._isCancelling = true;
   }
 
   private async _runProject(project: Project, index: number): Promise<ProcessTracker> {
     if (project.delay) await delay(project.delay);
 
     project.currentProcess = this._execFn(`${project.command} ${project.args.join(' ')}`, { cwd: project.cwd });
-    
+
     let displayName = `${project.name} [${project.currentProcess.pid || '?'}]`;
     let tracker: ProcessTracker = {
       name: displayName,
       process: project.currentProcess,
       buffer: new StatusQueue(),
       color: getFgColor(index),
-      bgColor: getBgColor(index)
+      bgColor: getBgColor(index),
+      done: false,
+      terminating: false
     };
-    this._lastOutput[tracker.name] = new TextBuffer(this._lineLimit);
+    this._lastOutput[tracker.name] = new TextBuffer('|');
 
     tracker.process.stdout.on('data', (text: string) => {
       if (ERROR_REGEX.test(text)) {
@@ -263,7 +290,7 @@ Press 'Q' to exit...`;
       this._lastOutput[tracker.name].push(`Process Exit: ${code} (${signal})`);
       this._redraw();
     });
-    
+
     // Add everything...
     this._processNames.push(displayName);
     this._maxNameLength = Math.max(this._maxNameLength, displayName.length)
@@ -284,23 +311,31 @@ Press 'Q' to exit...`;
 
 class TextBuffer {
   private _text: Queue<string>;
-  public constructor(lineLimit: number) {
-    this._text = new Queue(lineLimit);
+  public constructor(fill?: string, limit: number = 50) {
+    this._text = new Queue(limit);
+    if (fill) {
+      for (let i = 0; i < limit; i++) this._text.enqueue(fill);
+    }
   }
 
   public push(text: string): void {
-    let lines = (text || EMPTY_STRING).split(NEWLINE_REGEX);
+    let lines = stripAnsi(text || EMPTY_STRING).split(NEWLINE_REGEX);
     for (let line of lines) {
       line = line.trimRight();
       if (line.length > 0) this._text.enqueue(line);
     }
   }
 
-  public toString(consoleWidth: number = 80): string {
-    return this._text.toArray().map(line => this._shortenOutput(line, consoleWidth)).join(EOL);
+  public toString(consoleWidth: number, consoleHeight: number): string {
+    if (consoleHeight < 1) consoleHeight = 1;
+    return this._text.slice(-1 * consoleHeight).map(line => this._shortenOutput(line, consoleWidth)).join(EOL);
   }
 
   private _shortenOutput(text: string, consoleWidth: number = 80): string {
     return text.substring(0, consoleWidth);
   }
+}
+
+function repeat(char: string, times: number): string {
+  return Array(times).fill(char).join(EMPTY_STRING);
 }
