@@ -1,6 +1,6 @@
 {
   "name": "@jimmyboh/playbook",
-  "version": "0.12.1",
+  "version": "0.13.0",
   "description": "A simple tool for running multiple projects at once.",
   "main": "index.js",
   "bin": {
