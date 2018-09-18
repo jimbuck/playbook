@@ -48,12 +48,24 @@ function getSpinnerChar(p: ProcessTracker): string {
   return p.color(SPINNER_CHARS[p.buffer.step % SPINNER_CHARS.length]);
 }
 
-const GRAY_LINE = chalk.gray('▁');
+const BLANK_CHAR = ' ';
+const EMPTY_TIMELINE_BLOCK = chalk.gray('_');
 const GRAY_BLOCK = chalk.gray('█');
 const GREEN_BLOCK = chalk.green('█');
 const YELLOW_BLOCK = chalk.yellow('█');
 const RED_BLOCK = chalk.red('█');
-const BOX_LINE_HORIZONTAL = '─';
+
+const BOX_LINE_HORZ = chalk.gray('━');
+const BOX_LINE_VERT = chalk.gray('┃');
+const BOX_LINE_VERT_THIN = '│';
+const BOX_END_LEFT = chalk.gray('┫');
+const BOX_END_RIGHT = chalk.gray('┣');
+const BOX_MIDDLE_LEFT = chalk.gray('┣');
+const BOX_MIDDLE_RIGHT = chalk.gray('┫');
+const BOX_TOP_LEFT = chalk.gray('┏');
+const BOX_TOP_RIGHT = chalk.gray('┓');
+const BOX_BOTTOM_LEFT = chalk.gray('╰');
+const BOX_BOTTOM_RIGHT = chalk.gray('╯');
 
 interface ProcessTracker {
   name: string;
@@ -73,8 +85,8 @@ class StatusQueue extends Queue<string>
   constructor() {
     super(200);
 
-    for (let i = 0; i < this.limit; i++) {
-      this.enqueue(GRAY_LINE);
+    while (this.count < this.limit) {
+      this.enqueue(EMPTY_TIMELINE_BLOCK);
     }
   }
 
@@ -143,7 +155,7 @@ export class ProcessManager {
       tickInterval = setInterval(() => {
         if (!this._isCancelled) {
           procs.forEach(proc => {
-            if (!proc.done) proc.buffer.enqueue(GRAY_LINE);
+            if (!proc.done) proc.buffer.enqueue(EMPTY_TIMELINE_BLOCK);
           });
         }
         this._redraw();
@@ -195,22 +207,21 @@ export class ProcessManager {
 
         const consoleWidth = ((<WriteStream>process.stdout).columns || 80);
         const consoleHeight = ((<WriteStream>process.stdout).rows || 22) - 2;
-        const processOutputHeight = Math.floor((consoleHeight - (this._processes.length + 6)) / this._processes.length);
+        const processOutputHeight = Math.floor((consoleHeight - (this._processes.length + 4)) / this._processes.length);
 
-        let drawString = `Projects:
-${repeat(BOX_LINE_HORIZONTAL, consoleWidth)}
+        let drawString = `${BOX_TOP_LEFT + BOX_LINE_HORZ + BOX_END_LEFT} Projects ${BOX_END_RIGHT + repeat(BOX_LINE_HORZ, consoleWidth - 15) + BOX_TOP_RIGHT}
 `;
 
         let projectList = this._processes.map(proc => {
           let paddingSpaces = (new Array(Math.max(0, this._maxNameLength - proc.name.length))).fill(' ').join('');
-          let titleLength = paddingSpaces.length + proc.name.length + 1; // Plus one for the colon...
-          let line = `${paddingSpaces + proc.color(proc.name)}:`;
+          let titleLength = paddingSpaces.length + proc.name.length;
+          let line = `${BOX_LINE_VERT + paddingSpaces + proc.color(proc.name + ':')}`;
           if (consoleWidth > titleLength + 3) {
-            let bufferWidth = consoleWidth - (titleLength + 3); // start space, end space and one spinner char...
-            line += ` ${proc.buffer.toString(bufferWidth)}`;
+            let bufferWidth = consoleWidth - (titleLength + 5); // start space, end space and one spinner char...
+            line += proc.buffer.toString(bufferWidth);
           }
 
-          line += ` ${getSpinnerChar(proc)}`;
+          line += ` ${getSpinnerChar(proc) + BOX_LINE_VERT}`;
 
           return line;
         }).join(EOL);
@@ -219,24 +230,22 @@ ${repeat(BOX_LINE_HORIZONTAL, consoleWidth)}
 
         if (processOutputHeight > 0) {
           drawString += `
-Output:
-${repeat(BOX_LINE_HORIZONTAL, consoleWidth)}
+${BOX_MIDDLE_LEFT + BOX_LINE_HORZ + BOX_END_LEFT} Output ${BOX_END_RIGHT + repeat(BOX_LINE_HORZ, consoleWidth - 13) + BOX_MIDDLE_RIGHT}
 `;
           this._processes.forEach(proc => {
             let output = this._lastOutput[proc.name];
             if (output) {
               drawString += proc.color(output.toString(consoleWidth, processOutputHeight)) + EOL;
             } else {
-              drawString += proc.color('...') + EOL;
+              drawString += proc.color(BOX_LINE_VERT_THIN + '...' + repeat(BLANK_CHAR, consoleWidth - 5) + BOX_LINE_VERT_THIN);
             }
           });
         }
 
-        drawString += `
-${repeat(BOX_LINE_HORIZONTAL, consoleWidth)}
+        drawString += `${BOX_BOTTOM_LEFT + repeat(BOX_LINE_HORZ, consoleWidth-2) + BOX_BOTTOM_RIGHT}
 Press 'Q' ${this._isCancelled ? 'again ' : EMPTY_STRING}to ${this._isCancelled ? 'exit' : 'stop'}...`;
 
-        drawFn(drawString);
+        drawFn(chalk.bgBlack(drawString));
       };
     });
   }
@@ -260,7 +269,7 @@ Press 'Q' ${this._isCancelled ? 'again ' : EMPTY_STRING}to ${this._isCancelled ?
       done: false,
       terminating: false
     };
-    this._lastOutput[tracker.name] = new TextBuffer('.');
+    this._lastOutput[tracker.name] = new TextBuffer();
 
     tracker.process.stdout.on('data', (text: string) => {
       if (ERROR_REGEX.test(text)) {
@@ -313,11 +322,10 @@ Press 'Q' ${this._isCancelled ? 'again ' : EMPTY_STRING}to ${this._isCancelled ?
 
 class TextBuffer {
   private _text: Queue<string>;
-  public constructor(fill?: string, limit: number = 50) {
+  public constructor(limit: number = 50) {
     this._text = new Queue(limit);
-    if (fill) {
-      for (let i = 0; i < limit; i++) this._text.enqueue(fill);
-    }
+    let i = 0;
+    while (i++ < limit) this._text.enqueue(EMPTY_STRING);
   }
 
   public push(text: string): void {
@@ -330,11 +338,15 @@ class TextBuffer {
 
   public toString(consoleWidth: number, consoleHeight: number): string {
     if (consoleHeight < 1) consoleHeight = 1;
-    return this._text.slice(-1 * consoleHeight).map(line => this._shortenOutput(line, consoleWidth)).join(EOL);
+    return this._text.slice(-1 * consoleHeight)
+      .map(line => stripAnsi(BOX_LINE_VERT_THIN) + this._shortenOutput(line, consoleWidth - 2) + stripAnsi(BOX_LINE_VERT_THIN))
+      .join(EOL);
   }
 
   private _shortenOutput(text: string, consoleWidth: number = 80): string {
-    return text.substring(0, consoleWidth);
+    let shortChars = consoleWidth - text.length;
+    let missingSpaces = shortChars > 0 ? repeat(BLANK_CHAR, shortChars) : EMPTY_STRING;
+    return text.substring(0, consoleWidth) + missingSpaces;
   }
 }
 
