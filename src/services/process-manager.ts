@@ -1,4 +1,4 @@
-import { ChildProcess, exec } from 'child_process';
+import { ChildProcess, exec, execFile } from 'child_process';
 import { WriteStream } from 'tty';
 import { EOL } from 'os';
 const chalk = require('chalk');
@@ -41,7 +41,15 @@ function getBgColor(i: number): ((message: any) => string) {
   return BG_COLORS[(i + colorOffset) % FG_COLORS.length];
 }
 
-const SPINNER_CHARS = '▁▃▄▅▆▇█▇▆▅▄▃';
+const SPINNER_DOTS = '⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏';
+const SPINNER_NOISE = '▓▒░ ';
+const SPINNER_SPIN = '│/─\\';
+const SPINNER_PIPE = '┤┘┴└├┌┬┐';
+const SPINNER_GROW = '▁▃▄▅▆▇█▇▆▅▄▃';
+const SPINNER_FAT = '▏▎▍▌▋▊▉▊▋▌▍▎';
+const SPINNER_BOUNCE = '⠁⠂⠄⠂';
+const SPINNER_LAYER = '-=≡=';
+const SPINNER_CHARS = SPINNER_DOTS;
 
 function getSpinnerChar(p: ProcessTracker): string {
   if (p.done) return p.color(SPINNER_CHARS[0]);
@@ -57,7 +65,6 @@ const RED_BLOCK = chalk.red('█');
 
 const BOX_LINE_HORZ = chalk.gray('━');
 const BOX_LINE_VERT = chalk.gray('┃');
-const BOX_LINE_VERT_THIN = '│';
 const BOX_END_LEFT = chalk.gray('┫');
 const BOX_END_RIGHT = chalk.gray('┣');
 const BOX_MIDDLE_LEFT = chalk.gray('┣');
@@ -132,13 +139,11 @@ export class ProcessManager {
 
   private _isCancelling: boolean = false;
   private _isCancelled: boolean = false;
-  private _execFn: any;
 
-  constructor(play: Play, execFn: any = exec) {
+  constructor(play: Play) {
     this._play = play;
     this._processNames = [];
     this._processes = [];
-    this._execFn = execFn;
   }
 
   public async execute(drawFn: (str: string) => void, throttle: number = 50): Promise<void> {
@@ -237,7 +242,7 @@ ${BOX_MIDDLE_LEFT + BOX_LINE_HORZ + BOX_END_LEFT} Output ${BOX_END_RIGHT + repea
             if (output) {
               drawString += proc.color(output.toString(consoleWidth, processOutputHeight)) + EOL;
             } else {
-              drawString += proc.color(BOX_LINE_VERT_THIN + '...' + repeat(BLANK_CHAR, consoleWidth - 5) + BOX_LINE_VERT_THIN);
+              drawString += BOX_LINE_VERT + proc.color('...' + repeat(BLANK_CHAR, consoleWidth - 5)) + BOX_LINE_VERT;
             }
           });
         }
@@ -257,7 +262,11 @@ Press 'Q' ${this._isCancelled ? 'again ' : EMPTY_STRING}to ${this._isCancelled ?
   private async _runProject(project: Project, index: number): Promise<ProcessTracker> {
     if (project.delay) await delay(project.delay);
 
-    project.currentProcess = this._execFn(`${project.command} ${project.args.join(' ')}`, { cwd: project.cwd });
+    if (project.file) {
+      project.currentProcess = execFile(project.command, project.args, { cwd: project.cwd });
+    } else {
+      project.currentProcess = exec(`${project.command} ${project.args.join(' ')}`, { cwd: project.cwd });
+    }
 
     let displayName = `${project.name} [${project.currentProcess.pid || '?'}]`;
     let tracker: ProcessTracker = {
@@ -339,7 +348,7 @@ class TextBuffer {
   public toString(consoleWidth: number, consoleHeight: number): string {
     if (consoleHeight < 1) consoleHeight = 1;
     return this._text.slice(-1 * consoleHeight)
-      .map(line => stripAnsi(BOX_LINE_VERT_THIN) + this._shortenOutput(line, consoleWidth - 2) + stripAnsi(BOX_LINE_VERT_THIN))
+      .map(line => BOX_LINE_VERT + this._shortenOutput(line, consoleWidth - 2) +  BOX_LINE_VERT)
       .join(EOL);
   }
 

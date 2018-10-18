@@ -10,6 +10,8 @@ export interface Project
 
   command: string;
 
+  file?: boolean;
+
   args?: string[];
 
   enabled?: boolean;
