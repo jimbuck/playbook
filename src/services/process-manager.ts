@@ -42,7 +42,7 @@ function getBgColor(i: number): ((message: any) => string) {
 }
 
 const SPINNER_DOTS = '⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏';
-const SPINNER_NOISE = '▓▒░ ';
+const SPINNER_NOISE = ' ░▒▓█▓▒░';
 const SPINNER_SPIN = '│/─\\';
 const SPINNER_PIPE = '┤┘┴└├┌┬┐';
 const SPINNER_GROW = '▁▃▄▅▆▇█▇▆▅▄▃';
@@ -57,22 +57,23 @@ function getSpinnerChar(p: ProcessTracker): string {
 }
 
 const BLANK_CHAR = ' ';
-const EMPTY_TIMELINE_BLOCK = chalk.gray('_');
+const EMPTY_TIMELINE_BLOCK = chalk.gray('▁');
 const GRAY_BLOCK = chalk.gray('█');
 const GREEN_BLOCK = chalk.green('█');
 const YELLOW_BLOCK = chalk.yellow('█');
 const RED_BLOCK = chalk.red('█');
 
-const BOX_LINE_HORZ = chalk.gray('━');
-const BOX_LINE_VERT = chalk.gray('┃');
-const BOX_END_LEFT = chalk.gray('┫');
-const BOX_END_RIGHT = chalk.gray('┣');
-const BOX_MIDDLE_LEFT = chalk.gray('┣');
-const BOX_MIDDLE_RIGHT = chalk.gray('┫');
-const BOX_TOP_LEFT = chalk.gray('┏');
-const BOX_TOP_RIGHT = chalk.gray('┓');
-const BOX_BOTTOM_LEFT = chalk.gray('╰');
-const BOX_BOTTOM_RIGHT = chalk.gray('╯');
+const LINE_COLOR = chalk.white;
+const BOX_LINE_HORZ = LINE_COLOR('━');
+const BOX_LINE_VERT = LINE_COLOR('┃');
+const BOX_END_LEFT = LINE_COLOR('┫');
+const BOX_END_RIGHT = LINE_COLOR('┣');
+const BOX_MIDDLE_LEFT = LINE_COLOR('┣');
+const BOX_MIDDLE_RIGHT = LINE_COLOR('┫');
+const BOX_TOP_LEFT = LINE_COLOR('┏');
+const BOX_TOP_RIGHT = LINE_COLOR('┓');
+const BOX_BOTTOM_LEFT = LINE_COLOR('┗');
+const BOX_BOTTOM_RIGHT = LINE_COLOR('┛');
 
 interface ProcessTracker {
   name: string;
