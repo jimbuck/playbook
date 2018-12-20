@@ -1,6 +1,9 @@
-import { ChildProcess, exec, execFile } from 'child_process';
+import { ChildProcess, spawn, exec, execFile } from 'child_process';
 import { WriteStream } from 'tty';
+import { join as joinPath } from 'path';
 import { EOL } from 'os';
+import { createWriteStream } from 'fs';
+
 const chalk = require('chalk');
 const stripAnsi = require('strip-ansi');
 
@@ -263,11 +266,24 @@ Press 'Q' ${this._isCancelled ? 'again ' : EMPTY_STRING}to ${this._isCancelled ?
   private async _runProject(project: Project, index: number): Promise<ProcessTracker> {
     if (project.delay) await delay(project.delay);
 
-    if (project.file) {
-      project.currentProcess = execFile(project.command, project.args, { cwd: project.cwd });
-    } else {
-      project.currentProcess = exec(`${project.command} ${project.args.join(' ')}`, { cwd: project.cwd });
+    if (project.logFile) {
+      let logFile = joinPath(project.cwd, project.logFile);
+      project.logStream = createWriteStream(logFile);
     }
+
+    project.currentProcess = spawn(project.command, project.args, {
+      cwd: project.cwd,
+      shell: !project.file,
+      stdio: ['pipe', 'pipe', 'pipe']
+    });
+    project.currentProcess.stdout.setEncoding('utf8');
+    project.currentProcess.stderr.setEncoding('utf8');
+
+    // if (project.file) {
+    //   project.currentProcess = execFile(project.command, project.args, { cwd: project.cwd });
+    // } else {
+    //   project.currentProcess = exec(`${project.command} ${project.args.join(' ')}`, { cwd: project.cwd });
+    // }
 
     let displayName = `${project.name} [${project.currentProcess.pid || '?'}]`;
     let tracker: ProcessTracker = {
@@ -282,6 +298,8 @@ Press 'Q' ${this._isCancelled ? 'again ' : EMPTY_STRING}to ${this._isCancelled ?
     this._lastOutput[tracker.name] = new TextBuffer();
 
     tracker.process.stdout.on('data', (text: string) => {
+      if (project.logStream) project.logStream.write(text);
+
       if (ERROR_REGEX.test(text)) {
         tracker.buffer.enqueue(RED_BLOCK);
       } else if (WARN_REGEX.test(text)) {
@@ -294,6 +312,8 @@ Press 'Q' ${this._isCancelled ? 'again ' : EMPTY_STRING}to ${this._isCancelled ?
     });
 
     tracker.process.stderr.on('data', (text: string) => {
+      if (project.logStream) project.logStream.write(text);
+
       tracker.buffer.enqueue(RED_BLOCK);
       this._lastOutput[tracker.name].push(text);
       this._redraw();
@@ -306,9 +326,11 @@ Press 'Q' ${this._isCancelled ? 'again ' : EMPTY_STRING}to ${this._isCancelled ?
     });
 
     tracker.process.on('exit', (code: number, signal: string) => {
+      const message = `Process Exit: ${code} (${signal})`;
       tracker.done = true;
       tracker.buffer.enqueue(GRAY_BLOCK);
-      this._lastOutput[tracker.name].push(`Process Exit: ${code} (${signal})`);
+      if (project.logStream) project.logStream.end(message);
+      this._lastOutput[tracker.name].push(message);
       this._redraw();
     });
 

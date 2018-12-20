@@ -1,4 +1,5 @@
 import { ChildProcess } from 'child_process';
+import { WriteStream } from 'fs';
 
 const EMPTY_STRING = '';
 
@@ -19,6 +20,10 @@ export interface Project
   delay?: number;
 
   currentProcess?: ChildProcess;
+
+  logFile?: string;
+
+  logStream?: WriteStream;
 }
 
 export interface Play
