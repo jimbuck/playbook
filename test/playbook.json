@@ -96,51 +96,8 @@
 				}
 			]
 		},
-		"gamma": {
-			"projects": [
-				{
-					"command": "dotnet",
-					"name": "dotnet-b (dotnet run)",
-					"cwd": "dotnet-b",
-					"args": [
-						"run"
-					],
-					"delay": 0,
-					"enabled": true
-				},
-				{
-					"command": "dotnet",
-					"name": "Hello World (dotnet run)",
-					"cwd": "dotnet-a",
-					"args": [
-						"run"
-					],
-					"delay": 0,
-					"enabled": true
-				},
-				{
-					"command": "npm",
-					"name": "node-a (npm run test)",
-					"cwd": "node-a",
-					"args": [
-						"run",
-						"test"
-					],
-					"delay": 0,
-					"enabled": true
-				},
-				{
-					"command": "npm",
-					"name": "node-b (npm run test)",
-					"cwd": "node-b",
-					"args": [
-						"run",
-						"test"
-					],
-					"delay": 0,
-					"enabled": true
-				}
-			]
+		"newteste": {
+			"projects": []
 		}
 	},
 	"lineLimit": 5

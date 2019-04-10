@@ -4,17 +4,18 @@ import * as minimatch from 'minimatch';
 import Conf = require('conf');
 
 import {flatten, FileSystemIterator} from './utils';
-import { Play, Project } from '../models';
+import { Play, Project, ProjectHandler } from '../models';
 
 import { availableHandlers } from '../handlers';
 import { ProcessManager } from './process-manager';
 
-export const PlaybookSettings = {
-};
+export const PlaybookSettings = {};
 
 export class Playbook {
 
   public static availableSettings = [];
+
+  public readonly availableHandlers: ProjectHandler[];
 
   private _cwd: string;
   private _storage: Conf;
@@ -30,6 +31,8 @@ export class Playbook {
       projectName: 'playbook',
       cwd: this._cwd
     });
+
+    this.availableHandlers = availableHandlers;
     let acceptedFiles = [...new Set<string>(flatten<string>(availableHandlers.map(ph => ph.files)))];
     this._fsIterator = new FileSystemIterator(acceptedFiles, ['node_modules', 'bower_components', 'typings', 'artifacts', 'bin', 'obj', 'packages']);
   }
@@ -81,22 +84,16 @@ export class Playbook {
     this._storage.delete(playPath(play.name));
   }
 
-  public async findProjects(cwd?: string): Promise<Project[]> {
-    cwd = cwd || this._cwd;
-    const results = await this._fsIterator.map<Project>(cwd, async (projectPath: string, filename: string) => {
+  public async findProjects(projectHandler: ProjectHandler): Promise<Project[]> {
+    if (!projectHandler) throw new Error(`Must provide a valid ProjectHandler!`);
+
+    const results = await this._fsIterator.map<Project>(this._cwd, async (projectPath: string, filename: string) => {
       const content: string = await fs.readAsync(projectPath);
+      
+      if (!projectHandler.files.some(fileGlob => minimatch(filename, fileGlob))) return [];
 
-      let x = await Promise.all(availableHandlers.map(async (projectHandler) => {
-        
-        if (projectHandler.files.some(fileGlob => minimatch(filename, fileGlob))) {
-          let projs = await projectHandler.extract(projectPath, content);
-          return projs.map(this._formatProject.bind(this)) as Array<Project>;
-        }
-
-        return [];
-      }));
-
-      return flatten(x);
+      let projects = await projectHandler.extract(projectPath, content);
+      return projects.map(this._formatProject.bind(this)) as Array<Project>;
     });
 
     return results;

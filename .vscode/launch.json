@@ -9,6 +9,16 @@
     },
     {
       "type": "node",
+      "request": "launch",
+      "name": "Launch Bin",
+      "program": "${workspaceFolder}/dist/bin/pb.js",
+      "cwd": "${workspaceFolder}/test",
+      "sourceMaps": true,
+      "outFiles": ["${workspaceFolder}/dist/**/*"],
+      "console": "integratedTerminal"
+    },
+    {
+      "type": "node",
       "request": "attach",
       "name": "Attach by Process ID",
       "processId": "${command:PickProcess}"
